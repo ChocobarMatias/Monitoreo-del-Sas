@@ -46,16 +46,7 @@ export const authService = {
       }
     });
 
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role
-      }
-    };
+    return { accessToken, refreshToken, user };
   },
 
   async refresh(token) {
@@ -80,17 +71,5 @@ export const authService = {
       subject: 'Password recovery',
       text: `Reset your password here: ${resetUrl}`
     });
-  },
-
-  async resetPassword(token, newPassword) {
-    const payload = jwt.verify(token, env.jwtAccessSecret);
-    if (payload.type !== 'password-reset') {
-      throw new Error('Invalid reset token type');
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({ where: { id: Number(payload.sub) }, data: { passwordHash } });
-
-    await prisma.refreshToken.deleteMany({ where: { userId: Number(payload.sub) } });
   }
 };

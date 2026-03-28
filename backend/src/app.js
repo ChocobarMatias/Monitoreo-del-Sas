@@ -6,10 +6,6 @@ export const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use((req, _res, next) => {
-  req.realtime = app.locals.realtime;
-  next();
-});
 app.use('/api', router);
 
 app.use((error, _req, res, _next) => {

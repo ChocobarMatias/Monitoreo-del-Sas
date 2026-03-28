@@ -30,14 +30,8 @@ npm install
 npm run dev
 ```
 
-## API Overview
-- Auth: register/login/refresh/recovery/reset-password
-- Attendance: monthly generation, salary calculation, PDF export
-- Admin: users, calendar events, salary scale versions, API keys, webhook management
-- Internal: API-key-protected webhook trigger endpoint
-
 ## Key Features
-- JWT auth with refresh tokens, password recovery, reset-password flow, and rate limiting
+- JWT auth with refresh tokens, password recovery, and rate limiting
 - Role-based access control (`ADMIN`, `USER`)
 - A/B/C/D rotating attendance engine with holiday, strike, rest day, and leave overrides
 - Salary engine with versioned scales and detailed monthly breakdown

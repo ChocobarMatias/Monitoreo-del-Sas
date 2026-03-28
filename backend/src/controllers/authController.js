@@ -1,5 +1,5 @@
 import { authService } from '../services/authService.js';
-import { loginSchema, recoverySchema, registerSchema, resetPasswordSchema } from '../validators/schemas.js';
+import { loginSchema, recoverySchema, registerSchema } from '../validators/schemas.js';
 
 export const authController = {
   async register(req, res) {
@@ -24,11 +24,5 @@ export const authController = {
     const { email } = recoverySchema.parse(req.body);
     await authService.requestPasswordRecovery(email);
     res.json({ message: 'If the email exists, a recovery message was sent.' });
-  },
-
-  async resetPassword(req, res) {
-    const { token, newPassword } = resetPasswordSchema.parse(req.body);
-    await authService.resetPassword(token, newPassword);
-    res.json({ message: 'Password reset successful' });
   }
 };

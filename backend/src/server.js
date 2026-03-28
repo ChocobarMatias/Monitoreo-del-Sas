@@ -4,8 +4,7 @@ import { env } from './config/env.js';
 import { setupSocketServer } from './sockets/socketServer.js';
 
 const httpServer = http.createServer(app);
-const realtime = setupSocketServer(httpServer);
-app.locals.realtime = realtime;
+setupSocketServer(httpServer);
 
 httpServer.listen(env.port, () => {
   // eslint-disable-next-line no-console
