@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum EventType {
+  HOLIDAY
+  STRIKE
+  REST_DAY
+  VACATION
+  SICK_LEAVE
+}
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  email             String              @unique
+  fullName          String
+  passwordHash      String
+  pinHash           String?
+  role              Role                @default(USER)
+  activeScaleId     Int?
+  refreshTokens     RefreshToken[]
+  attendanceRecords AttendanceRecord[]
+  events            CalendarEvent[]
+  webhookDeliveries WebhookDelivery[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  activeScale SalaryScaleVersion? @relation(fields: [activeScaleId], references: [id])
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceRecord {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  workDate    DateTime
+  shiftStart  String
+  shiftEnd    String
+  hours       Decimal  @db.Decimal(5, 2)
+  isHoliday   Boolean  @default(false)
+  isNight     Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workDate])
+}
+
+model CalendarEvent {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  eventType EventType
+  startDate DateTime
+  endDate   DateTime
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SalaryScaleVersion {
+  id                Int      @id @default(autoincrement())
+  versionLabel      String   @unique
+  baseHourlyRate    Decimal  @db.Decimal(8, 2)
+  nightMultiplier   Decimal  @db.Decimal(4, 2)
+  holidayMultiplier Decimal  @db.Decimal(4, 2)
+  createdAt         DateTime @default(now())
+}
+
+model ApiKey {
+  id          Int      @id @default(autoincrement())
+  name        String
+  keyHash     String   @unique
+  lastUsedAt  DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Webhook {
+  id         Int      @id @default(autoincrement())
+  url        String
+  secret     String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model WebhookDelivery {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  webhookId   Int
+  event       String
+  payload     Json
+  statusCode  Int?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
