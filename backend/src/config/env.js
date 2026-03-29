@@ -1,20 +1,29 @@
-import dotenv from 'dotenv';
 
+const dotenv = require("dotenv");
 dotenv.config();
 
-export const env = {
-  port: Number(process.env.PORT ?? 4000),
-  dbUrl: process.env.DATABASE_URL,
-  jwtAccessSecret: process.env.JWT_ACCESS_SECRET,
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
-  accessTokenTtl: process.env.ACCESS_TOKEN_TTL ?? '15m',
-  refreshTokenTtl: process.env.REFRESH_TOKEN_TTL ?? '30d',
-  smtpHost: process.env.SMTP_HOST,
-  smtpPort: Number(process.env.SMTP_PORT ?? 587),
-  smtpUser: process.env.SMTP_USER,
-  smtpPass: process.env.SMTP_PASS,
-  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
-  telegramChatId: process.env.TELEGRAM_CHAT_ID,
-  apiKeySalt: process.env.API_KEY_SALT ?? 'api-key-salt'
+const env = {
+  PORT: process.env.PORT || 4000,
+  NODE_ENV: process.env.NODE_ENV || "development",
+
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES || "15m",
+  JWT_REFRESH_EXPIRES: process.env.JWT_REFRESH_EXPIRES || "7d",
+
+  MAIL_HOST: process.env.MAIL_HOST,
+  MAIL_PORT: process.env.MAIL_PORT,
+  MAIL_USER: process.env.MAIL_USER,
+  MAIL_PASS: process.env.MAIL_PASS,
+  MAIL_FROM: process.env.MAIL_FROM,
+
+  FRONTEND_URL: process.env.FRONTEND_URL
 };
+
+module.exports = { env };
