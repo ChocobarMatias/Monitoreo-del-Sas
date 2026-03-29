@@ -12,6 +12,8 @@ function authMiddleware(req, _res, next) {
     }
 
     const token = authHeader.split(" ")[1];
+    console.log("HEADER:", req.headers.authorization);
+console.log("TOKEN:", token);
     const payload = verifyAccessToken(token);
 
     req.user = payload;

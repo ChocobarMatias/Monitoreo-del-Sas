@@ -2,7 +2,13 @@ const { query } = require("../../config/db");
 const { getBaseShiftForDate, applySpecialRules } = require("./attendance.engine");
 
 function normalizeDate(dateValue) {
-  return String(dateValue).split("T")[0];
+  const date = new Date(dateValue);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function dayNameFromDate(date) {
@@ -38,67 +44,54 @@ function getEmptySummary() {
   };
 }
 
-function toOverrideFlags(override) {
-  return {
-    isHoliday: override?.type === "HOLIDAY",
-    isStrike: override?.type === "STRIKE",
-    strikeShiftType: override?.strike_shift || null,
-    isRest: override?.type === "REST",
-    isVacation: override?.type === "VACATION",
-    isSickLeave: override?.type === "SICK"
-  };
-}
-
 function buildMonthRows({ year, month, overrideMap, initialState }) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const rows = [];
   const summary = getEmptySummary();
 
-  let previousWorked = Boolean(initialState?.previousWorked);
-  let lastWorkedShiftType = initialState?.lastWorkedShiftType || null;
-
-  for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber += 1) {
+  for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
     const jsDate = new Date(year, month - 1, dayNumber);
     const dateKey = normalizeDate(jsDate);
 
-    const baseShift = getBaseShiftForDate({ previousWorked, lastWorkedShiftType });
     const override = overrideMap.get(dateKey);
+
+    const baseShift = getBaseShiftForDate({
+      date: jsDate,
+      initialState
+    });
 
     const finalShift = applySpecialRules({
       baseShift,
-      previousWorked,
-      lastWorkedShiftType,
-      ...toOverrideFlags(override)
+      override,
+      date: jsDate
     });
 
-    const workedToday = Number(finalShift.workedHours) > 0;
-    if (workedToday && (finalShift.shiftType === "DAY" || finalShift.shiftType === "NIGHT")) {
-      lastWorkedShiftType = finalShift.shiftType;
-    }
-
-    previousWorked = workedToday;
-
-    summary.totalHours += Number(finalShift.workedHours || 0);
-    summary.totalNightHours += Number(finalShift.nightHours || 0);
-    summary.totalHolidayHours += Number(finalShift.holidayPaidHours || 0);
-
-    rows.push({
+    const row = {
       workDate: dateKey,
       weekCycle: weekCycleFromDay(dayNumber),
       dayName: dayNameFromDate(jsDate),
+
       shiftType: finalShift.shiftType,
       startTime: finalShift.startTime,
       endTime: finalShift.endTime,
       workedHours: Number(finalShift.workedHours || 0),
       nightHours: Number(finalShift.nightHours || 0),
       holidayPaidHours: Number(finalShift.holidayPaidHours || 0),
+
       isHoliday: override?.type === "HOLIDAY" ? 1 : 0,
       isStrike: override?.type === "STRIKE" ? 1 : 0,
       isRest: override?.type === "REST" ? 1 : 0,
       isVacation: override?.type === "VACATION" ? 1 : 0,
       isSickLeave: override?.type === "SICK" ? 1 : 0,
+
       source: override ? "MANUAL" : "AUTO"
-    });
+    };
+
+    summary.totalHours += row.workedHours;
+    summary.totalNightHours += row.nightHours;
+    summary.totalHolidayHours += row.holidayPaidHours;
+
+    rows.push(row);
   }
 
   summary.suggestedRestDays =
@@ -143,6 +136,7 @@ async function getMonthOverrides(attendanceMonthId) {
 
 async function getInitialStateFromPreviousMonth({ userId, year, month }) {
   const prev = prevMonthOf(year, month);
+
   const prevMonthRows = await query(
     `SELECT id FROM attendance_months
      WHERE user_id = ? AND year = ? AND month = ?
@@ -188,6 +182,8 @@ async function getInitialStateFromPreviousMonth({ userId, year, month }) {
 
 async function persistMonthDays(attendanceMonthId, rows) {
   for (const row of rows) {
+    const workDate = normalizeDate(row.workDate);
+
     await query(
       `INSERT INTO attendance_days
       (attendance_month_id, work_date, week_cycle, day_name, shift_type, start_time, end_time,
@@ -211,7 +207,7 @@ async function persistMonthDays(attendanceMonthId, rows) {
         source = VALUES(source)`,
       [
         attendanceMonthId,
-        row.workDate,
+        workDate,
         row.weekCycle,
         row.dayName,
         row.shiftType,
@@ -252,6 +248,7 @@ async function recalculateMonth({ userId, year, month }) {
   const initialState = await getInitialStateFromPreviousMonth({ userId, year, month });
 
   const { rows, summary } = buildMonthRows({ year, month, overrideMap, initialState });
+
   await persistMonthDays(monthRow.id, rows);
   await updateMonthSummary(monthRow.id, summary);
 
@@ -260,6 +257,7 @@ async function recalculateMonth({ userId, year, month }) {
 
 async function recalculateFutureMonths({ userId, year, month }) {
   const currentRank = monthRank(year, month);
+
   const futureMonths = await query(
     `SELECT year, month
      FROM attendance_months
@@ -271,6 +269,7 @@ async function recalculateFutureMonths({ userId, year, month }) {
   for (const item of futureMonths) {
     const y = Number(item.year);
     const m = Number(item.month);
+
     if (monthRank(y, m) > currentRank) {
       await recalculateMonth({ userId, year: y, month: m });
     }
@@ -287,11 +286,13 @@ async function generateSequentialMonthsUntil({ userId, year, month }) {
   );
 
   const targetRank = monthRank(year, month);
+
   const existingSorted = existing
     .map((item) => ({ year: Number(item.year), month: Number(item.month) }))
     .sort((a, b) => monthRank(a.year, a.month) - monthRank(b.year, b.month));
 
   let start = { year, month };
+
   for (const item of existingSorted) {
     if (monthRank(item.year, item.month) < targetRank) {
       start = nextMonthOf(item.year, item.month);
@@ -299,6 +300,7 @@ async function generateSequentialMonthsUntil({ userId, year, month }) {
   }
 
   let cursor = { ...start };
+
   while (monthRank(cursor.year, cursor.month) <= targetRank) {
     await recalculateMonth({ userId, year: cursor.year, month: cursor.month });
     cursor = nextMonthOf(cursor.year, cursor.month);

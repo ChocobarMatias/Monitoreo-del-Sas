@@ -41,9 +41,26 @@ export default function AttendancePage() {
     // eslint-disable-next-line
   }, [year, month]);
 
-  function downloadPdf() {
-    window.open(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/attendance/${year}/${month}/pdf`, "_blank");
+ const downloadPdf = async () => {
+  try {
+    const response = await api.get(`/attendance/${year}/${month}/pdf`, {
+      responseType: "blob", // clave para PDF
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.setAttribute("download", `reporte-${year}-${month}.pdf`);
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+  } catch (error) {
+    console.error("Error descargando PDF:", error);
   }
+}
 
   function monthName(m) {
     return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m - 1];
