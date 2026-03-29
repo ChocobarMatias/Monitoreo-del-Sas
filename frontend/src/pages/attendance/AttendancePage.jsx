@@ -18,15 +18,19 @@ export default function AttendancePage() {
     setLoading(true);
     try {
       const { data } = await api.get(`/attendance/${year}/${month}`);
-      if (!data.data.length) {
+      const payload = data?.data || {};
+      const monthRows = Array.isArray(payload?.data) ? payload.data : [];
+
+      if (!monthRows.length) {
         await api.post("/attendance/generate", { year, month });
         const regenerated = await api.get(`/attendance/${year}/${month}`);
-        setRows(regenerated.data.data);
+        const regeneratedPayload = regenerated?.data?.data || {};
+        setRows(Array.isArray(regeneratedPayload?.data) ? regeneratedPayload.data : []);
+        setSummary(regeneratedPayload?.summary || {});
       } else {
-        setRows(data.data);
+        setRows(monthRows);
+        setSummary(payload?.summary || {});
       }
-      // Suponiendo que el backend devuelve un resumen
-      setSummary(data.summary || {});
     } finally {
       setLoading(false);
     }
@@ -38,7 +42,7 @@ export default function AttendancePage() {
   }, [year, month]);
 
   function downloadPdf() {
-    window.open(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/attendance/pdf/${year}/${month}`, "_blank");
+    window.open(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/attendance/${year}/${month}/pdf`, "_blank");
   }
 
   function monthName(m) {

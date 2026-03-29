@@ -1,7 +1,7 @@
 const { query } = require("../../config/db");
 
 function calcHourlyRate(base) {
-  return base / 200;
+  return Number(base || 0) / 200;
 }
 
 async function calculateSalaryService({ userId, year, month, scaleId }) {
@@ -24,45 +24,26 @@ async function calculateSalaryService({ userId, year, month, scaleId }) {
   if (!scale.length) throw new Error("Escala no encontrada");
 
   const s = scale[0];
-
   const valorHora = calcHourlyRate(s.sueldo_basico);
-
-  const extraHours = Math.max(0, monthData.total_hours - 200);
+  const extraHours = Math.max(0, Number(monthData.total_hours) - 200);
 
   const basePay = valorHora * 200;
   const extraPay = valorHora * extraHours;
-
-  const nightBonus = valorHora * 0.1 * monthData.total_night_hours;
-
-  const holidayPay = valorHora * monthData.total_holiday_hours;
+  const nightBonus = valorHora * 0.1 * Number(monthData.total_night_hours || 0);
+  const holidayPay = valorHora * Number(monthData.total_holiday_hours || 0);
 
   const remunerative =
     basePay +
     extraPay +
     nightBonus +
-    holidayPay;
-
-  return {
-    remunerative,
-    basePay,
-    extraPay,
-    nightBonus,
-    holidayPay
-  };
-}
-
-module.exports = { calculateSalaryService };
-    extraPay +
-    nightBonus +
     holidayPay +
-    s.adicional_presentismo;
+    Number(s.adicional_presentismo || 0);
 
   const nonRemunerative =
-    s.viatico +
-    s.adicional_no_rem;
+    Number(s.viatico || 0) +
+    Number(s.adicional_no_rem || 0);
 
   const discounts = remunerative * 0.17;
-
   const total = remunerative + nonRemunerative - discounts;
 
   await query(
@@ -76,8 +57,8 @@ module.exports = { calculateSalaryService };
       scaleId,
       200,
       extraHours,
-      monthData.total_night_hours,
-      monthData.total_holiday_hours,
+      Number(monthData.total_night_hours || 0),
+      Number(monthData.total_holiday_hours || 0),
       remunerative,
       nonRemunerative,
       discounts,
@@ -96,3 +77,5 @@ module.exports = { calculateSalaryService };
     total
   };
 }
+
+module.exports = { calculateSalaryService };

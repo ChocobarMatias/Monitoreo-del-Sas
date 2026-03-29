@@ -1,6 +1,5 @@
-
-
 const { Router } = require("express");
+const { authMiddleware } = require("../../middlewares/authMiddleware");
 const {
   generateAttendanceMonthService,
   getAttendanceMonthService,
@@ -10,14 +9,15 @@ const { generateAttendancePDF } = require("./attendance.pdf");
 
 const router = Router();
 
-// Generar mes de asistencia
+router.use(authMiddleware);
+
 router.post("/generate", async (req, res, next) => {
   try {
     const { year, month } = req.body;
     const data = await generateAttendanceMonthService({
       userId: req.user.id,
-      year,
-      month
+      year: Number(year),
+      month: Number(month)
     });
     res.status(201).json({ ok: true, data });
   } catch (error) {
@@ -25,7 +25,6 @@ router.post("/generate", async (req, res, next) => {
   }
 });
 
-// Obtener mes de asistencia
 router.get("/:year/:month", async (req, res, next) => {
   try {
     const { year, month } = req.params;
@@ -40,14 +39,13 @@ router.get("/:year/:month", async (req, res, next) => {
   }
 });
 
-// Override de asistencia y recálculo
 router.post("/override", async (req, res, next) => {
   try {
     const { year, month, date, type, strikeShift } = req.body;
     const data = await applyOverrideAndRecalculateService({
       userId: req.user.id,
-      year,
-      month,
+      year: Number(year),
+      month: Number(month),
       date,
       type,
       strikeShift
@@ -58,25 +56,26 @@ router.post("/override", async (req, res, next) => {
   }
 });
 
-// Generar PDF de asistencia
 router.get("/:year/:month/pdf", async (req, res, next) => {
   try {
     const { year, month } = req.params;
-    const rows = await getAttendanceMonthService({
+    const report = await getAttendanceMonthService({
       userId: req.user.id,
       year: Number(year),
       month: Number(month)
     });
+
     const pdf = generateAttendancePDF({
-      rows,
+      rows: report.data,
       meta: {
         servicio: "S.A.S",
         mes: month,
         year,
         operador: req.user.name,
-        total: rows[0]?.total_hours || 0
+        total: report.summary.totalHours || 0
       }
     });
+
     res.setHeader("Content-Type", "application/pdf");
     pdf.pipe(res);
     pdf.end();

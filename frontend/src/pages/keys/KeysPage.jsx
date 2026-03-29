@@ -33,7 +33,7 @@ export default function KeysPage() {
   async function fetchKeys() {
     const pin = prompt("PIN para consultar claves");
     const { data } = await api.get("/keys", { headers: { pin } });
-    setRecords(data.data);
+    setRecords(Array.isArray(data?.data) ? data.data : []);
   }
 
   useEffect(() => {
