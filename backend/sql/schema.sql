@@ -9,9 +9,15 @@ CREATE TABLE users (
   pin_hash VARCHAR(255) NULL,
   role ENUM('ADMIN', 'USER') NOT NULL DEFAULT 'USER',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  cycle_start_date DATE NULL,
+  initial_week_type ENUM('A','B') NOT NULL DEFAULT 'A',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Para instalaciones existentes:
+-- ALTER TABLE users ADD COLUMN cycle_start_date DATE NULL, ADD COLUMN initial_week_type ENUM('A','B') NOT NULL DEFAULT 'A';
+-- ALTER TABLE attendance_overrides ADD COLUMN holiday_worked TINYINT(1) NULL;
 
 CREATE TABLE password_resets (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -32,11 +38,20 @@ CREATE TABLE attendance_months (
   total_night_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
   total_holiday_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
   suggested_rest_days INT NOT NULL DEFAULT 0,
+  worked_days INT NOT NULL DEFAULT 0,
+  total_holidays INT NOT NULL DEFAULT 0,
+  weekend_days INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_user_month (user_id, year, month),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+-- Para instalaciones existentes (correr una vez):
+-- ALTER TABLE attendance_months
+--   ADD COLUMN worked_days INT NOT NULL DEFAULT 0,
+--   ADD COLUMN total_holidays INT NOT NULL DEFAULT 0,
+--   ADD COLUMN weekend_days INT NOT NULL DEFAULT 0;
 
 CREATE TABLE attendance_days (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -129,6 +144,7 @@ CREATE TABLE attendance_overrides (
   ) NOT NULL,
 
   strike_shift ENUM('DAY','NIGHT') NULL,
+  holiday_worked TINYINT(1) NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

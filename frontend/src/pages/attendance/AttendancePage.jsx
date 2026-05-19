@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { AttendanceSummary } from "../../components/attendance/AttendanceSummary";
-import { DayCard } from "../../components/attendance/DayCard";
+import { DayRow } from "../../components/attendance/DayCard";
 import { OverrideActionSheet } from "../../components/attendance/OverrideActionSheet";
-
 import { api } from "../../lib/axios";
+
+const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 export default function AttendancePage() {
   const [year, setYear] = useState(new Date().getFullYear());
@@ -12,21 +13,38 @@ export default function AttendancePage() {
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [editDate, setEditDate] = useState(null);
 
   async function fetchMonth() {
     setLoading(true);
     try {
       const { data } = await api.get(`/attendance/${year}/${month}`);
-      if (!data.data.length) {
+      const payload = data?.data || {};
+      const monthRows = Array.isArray(payload?.data) ? payload.data : [];
+
+      if (!monthRows.length) {
         await api.post("/attendance/generate", { year, month });
         const regenerated = await api.get(`/attendance/${year}/${month}`);
-        setRows(regenerated.data.data);
+        const rp = regenerated?.data?.data || {};
+        setRows(Array.isArray(rp?.data) ? rp.data : []);
+        setSummary(rp?.summary || {});
       } else {
-        setRows(data.data);
+        setRows(monthRows);
+        setSummary(payload?.summary || {});
       }
-      // Suponiendo que el backend devuelve un resumen
-      setSummary(data.summary || {});
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function recalculate() {
+    setLoading(true);
+    try {
+      const { data } = await api.post("/attendance/generate", { year, month });
+      const payload = data?.data || {};
+      setRows(Array.isArray(payload?.data) ? payload.data : []);
+      setSummary(payload?.summary || {});
     } finally {
       setLoading(false);
     }
@@ -37,27 +55,56 @@ export default function AttendancePage() {
     // eslint-disable-next-line
   }, [year, month]);
 
-  function downloadPdf() {
-    window.open(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/attendance/pdf/${year}/${month}`, "_blank");
+  async function downloadPdf() {
+    try {
+      const response = await api.get(`/attendance/${year}/${month}/pdf`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `reporte-${year}-${month}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Error descargando PDF:", err);
+    }
   }
 
-  function monthName(m) {
-    return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m - 1];
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
+  }
+
+  function handleEditDay(workDate) {
+    setEditDate(workDate);
+    setOverrideOpen(true);
+  }
+
+  function handleCloseOverride() {
+    setOverrideOpen(false);
+    setEditDate(null);
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
-        <Button variant="secondary" onClick={() => setMonth((m) => (m === 1 ? 12 : m - 1))}>Mes anterior</Button>
-        <div className="rounded-2xl bg-white px-4 py-3 text-sm font-bold shadow-soft">
-          {monthName(month)} {year}
+      {/* Navegación de mes */}
+      <div className="flex items-center gap-2">
+        <Button variant="secondary" className="px-3" onClick={prevMonth}>‹</Button>
+        <div className="flex-1 rounded-2xl bg-white px-4 py-3 text-center text-sm font-bold shadow-soft">
+          {MONTH_NAMES[month - 1]} {year}
         </div>
-        <Button variant="secondary" onClick={() => setMonth((m) => (m === 12 ? 1 : m + 1))}>Mes siguiente</Button>
+        <Button variant="secondary" className="px-3" onClick={nextMonth}>›</Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="secondary" className="gap-2" onClick={fetchMonth}>Recalcular</Button>
-        <Button className="gap-2" onClick={downloadPdf}>PDF</Button>
+      {/* Acciones globales */}
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="secondary" onClick={recalculate}>Recalcular</Button>
+        <Button onClick={() => setOverrideOpen(true)}>Configurar día</Button>
+        <Button variant="secondary" onClick={downloadPdf}>PDF</Button>
       </div>
 
       <AttendanceSummary summary={summary} />
@@ -67,20 +114,35 @@ export default function AttendancePage() {
           <p className="text-sm text-slate-500">Calculando cronograma...</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {rows.map((day) => (
-            <DayCard key={day.id} day={day} onAction={setSelectedDay} />
-          ))}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-soft">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-yellow-400 text-slate-900">
+                <th className="w-8 px-2 py-2.5 text-center text-xs font-bold">N°</th>
+                <th className="px-2 py-2.5 text-xs font-bold">Día</th>
+                <th className="px-2 py-2.5 text-center text-xs font-bold">Ingreso</th>
+                <th className="px-2 py-2.5 text-center text-xs font-bold">Egreso</th>
+                <th className="px-2 py-2.5 text-center text-xs font-bold">Hs</th>
+                <th className="px-2 py-2.5 text-center text-xs font-bold">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((day, i) => (
+                <DayRow key={day.id ?? day.work_date} day={day} index={i} onEdit={handleEditDay} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       <OverrideActionSheet
-        open={Boolean(selectedDay)}
-        onClose={() => setSelectedDay(null)}
-        day={selectedDay}
+        open={overrideOpen}
+        onClose={handleCloseOverride}
+        days={rows}
         year={year}
         month={month}
         onSuccess={fetchMonth}
+        initialDate={editDate}
       />
     </div>
   );

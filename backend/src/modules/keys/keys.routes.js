@@ -1,12 +1,14 @@
 
-const { Router } = require("express");
 
+const { Router } = require("express");
+const { listKeysController, createKeyController, updateKeyController, deleteKeyController, calculateSalaryController } = require("./keys.controller");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
-const { calculateSalaryController } = require("./keys.controller");
 const router = Router();
 
-router.get("/", (_req, res) => {
-  res.json({ ok: true, message: "Keys module pendiente" });
-});
-router.post("/calculate", authMiddleware, calculateSalaryController);
+router.get("/", listKeysController);
+router.post("/", createKeyController);
+router.put("/:id", updateKeyController);
+router.delete("/:id", authMiddleware, deleteKeyController);
+router.post("/calculate", calculateSalaryController);
+
 module.exports = router;
