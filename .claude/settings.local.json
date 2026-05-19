@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"require\\('./src/modules/attendance/attendance.service.js'\\)\")",
+      "Bash(node -e \"require\\('./src/modules/attendance/attendance.engine.js'\\)\")",
+      "Bash(node --input-type=module)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

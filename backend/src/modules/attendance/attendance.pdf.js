@@ -1,6 +1,26 @@
 const PDFDocument = require("pdfkit");
 
-function generateAttendancePDF({ rows, meta }) {
+const getMonthName = (month) => {
+  const months = [
+    "ENERO",
+    "FEBRERO",
+    "MARZO",
+    "ABRIL",
+    "MAYO",
+    "JUNIO",
+    "JULIO",
+    "AGOSTO",
+    "SEPTIEMBRE",
+    "OCTUBRE",
+    "NOVIEMBRE",
+    "DICIEMBRE",
+  ];
+
+  return months[month - 1] || "";
+};
+
+
+const generateAttendancePDF = ({ rows, meta }) => {
   const doc = new PDFDocument({
     size: "A4",
     margin: 30,
@@ -42,7 +62,7 @@ function generateAttendancePDF({ rows, meta }) {
   drawCell(`SERVICIO: ${meta.servicio}`, startX, y, tableWidth, 14);
   y += 14;
 
-  drawCell(`MES: ${meta.mes}   AÑO: ${meta.year}`, startX, y, tableWidth, 14);
+  drawCell(`MES: ${getMonthName(meta.mes)}   AÑO: ${meta.year}`, startX, y, tableWidth, 14);
   y += 14;
 
   drawCell(`OPERADOR: ${meta.operador}`, startX, y, tableWidth, 14);
@@ -85,7 +105,7 @@ function generateAttendancePDF({ rows, meta }) {
   });
 
   // ===== TOTAL =====
-  y += 10;
+  y += 40;
 
   doc.font("Helvetica-Bold");
 
@@ -99,14 +119,14 @@ function generateAttendancePDF({ rows, meta }) {
   );
 
   // ===== FIRMA =====
-  y += 50;
+  y += 120;
 
   const lineWidth = 180;
 
   doc.moveTo(startX, y).lineTo(startX + lineWidth, y).stroke();
   doc.moveTo(startX + 240, y).lineTo(startX + 240 + lineWidth, y).stroke();
 
-  y += 5;
+  y += 20;
 
   doc.fontSize(8).text("FIRMA", startX + 60, y);
   doc.text("ACLARACION", startX + 300, y);

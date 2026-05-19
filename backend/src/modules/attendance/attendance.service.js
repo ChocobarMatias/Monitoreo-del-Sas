@@ -1,5 +1,5 @@
 const { query } = require("../../config/db");
-const { getBaseShiftForDate, applySpecialRules } = require("./attendance.engine");
+const { getWeekType, getBaseShiftByCycle, applyRules } = require("./attendance.engine");
 
 function normalizeDate(dateValue) {
   const date = new Date(dateValue);
@@ -40,65 +40,160 @@ function getEmptySummary() {
     totalHours: 0,
     totalNightHours: 0,
     totalHolidayHours: 0,
-    suggestedRestDays: 0
+    workedDays: 0,
+    restDays: 0,
+    totalHolidays: 0,
+    weekendDays: 0,
   };
 }
 
-function buildMonthRows({ year, month, overrideMap, initialState }) {
+
+/**
+ * Genera el array de días del mes con turnos automáticos según ciclo A/B y reglas de negocio.
+ * @param {Object} params
+ * @param {number} year
+ * @param {number} month
+ * @param {Map} overrideMap
+ * @param {Object} initialState
+ * @param {Date} cycleStartDate
+ * @param {"A"|"B"} initialWeekType
+ * @returns {{rows: Array, summary: Object}}
+ */
+function buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate, initialWeekType }) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const rows = [];
   const summary = getEmptySummary();
+  let prevWorked = initialState?.previousWorked || false;
+  let prevShiftType = initialState?.lastWorkedShiftType || null;
 
   for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
-    const jsDate = new Date(year, month - 1, dayNumber);
-    const dateKey = normalizeDate(jsDate);
-
+    const date = new Date(year, month - 1, dayNumber);
+    const dateKey = normalizeDate(date);
     const override = overrideMap.get(dateKey);
+    const isHoliday = override?.type === "HOLIDAY";
+    const isStrike = override?.type === "STRIKE";
+    const isRest = override?.type === "REST";
+    const isVacation = override?.type === "VACATION";
+    const isSickLeave = override?.type === "SICK";
+    // holiday_worked: null/1 → trabajó, 0 → feriado libre
+    const holidayWorked = isHoliday ? (override?.holiday_worked !== 0) : null;
 
-    const baseShift = getBaseShiftForDate({
-      date: jsDate,
-      initialState
-    });
-
-    const finalShift = applySpecialRules({
-      baseShift,
-      override,
-      date: jsDate
+    const weekType = getWeekType(date, cycleStartDate, initialWeekType);
+    const baseShiftType = getBaseShiftByCycle(weekType, date.getDay());
+    const shift = applyRules({
+      baseShift: baseShiftType,
+      isHoliday,
+      holidayWorked,
+      isStrike,
+      isRest,
+      isVacation,
+      isSickLeave,
+      prevWorked,
+      prevShiftType
     });
 
     const row = {
       workDate: dateKey,
-      weekCycle: weekCycleFromDay(dayNumber),
-      dayName: dayNameFromDate(jsDate),
-
-      shiftType: finalShift.shiftType,
-      startTime: finalShift.startTime,
-      endTime: finalShift.endTime,
-      workedHours: Number(finalShift.workedHours || 0),
-      nightHours: Number(finalShift.nightHours || 0),
-      holidayPaidHours: Number(finalShift.holidayPaidHours || 0),
-
-      isHoliday: override?.type === "HOLIDAY" ? 1 : 0,
-      isStrike: override?.type === "STRIKE" ? 1 : 0,
-      isRest: override?.type === "REST" ? 1 : 0,
-      isVacation: override?.type === "VACATION" ? 1 : 0,
-      isSickLeave: override?.type === "SICK" ? 1 : 0,
-
+      weekCycle: weekType,
+      dayName: dayNameFromDate(date),
+      shiftType: shift.shiftType,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      workedHours: Number(shift.workedHours || 0),
+      nightHours: Number(shift.nightHours || 0),
+      holidayPaidHours: Number(shift.holidayPaidHours || 0),
+      isHoliday: isHoliday ? 1 : 0,
+      isStrike: isStrike ? 1 : 0,
+      isRest: isRest ? 1 : 0,
+      isVacation: isVacation ? 1 : 0,
+      isSickLeave: isSickLeave ? 1 : 0,
       source: override ? "MANUAL" : "AUTO"
     };
 
     summary.totalHours += row.workedHours;
     summary.totalNightHours += row.nightHours;
     summary.totalHolidayHours += row.holidayPaidHours;
-
+    if (isHoliday) summary.totalHolidays++;
+    if (isRest) summary.restDays++;
     rows.push(row);
-  }
 
-  summary.suggestedRestDays =
-    summary.totalHours > 204 ? Math.ceil((summary.totalHours - 204) / 12) : 0;
+    if (row.workedHours > 0) {
+      summary.workedDays++;
+      const dow = date.getDay();
+      if (row.shiftType === "DAY" && (dow === 0 || dow === 6)) summary.weekendDays++;
+      prevShiftType = row.shiftType;
+      prevWorked = true;
+    } else {
+      prevShiftType = null;
+      prevWorked = false;
+    }
+  }
 
   return { rows, summary };
 }
+
+  // const daysInMonth = new Date(year, month, 0).getDate();
+  // const rows = [];
+  // const summary = getEmptySummary();
+
+  // for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
+  //   const jsDate = new Date(year, month - 1, dayNumber);
+  //   const dateKey = normalizeDate(jsDate);
+
+  //   const override = overrideMap.get(dateKey);
+
+  //   const baseShift = getBaseShiftForDate({
+  //     date: jsDate,
+  //     initialState
+  //   });
+
+  //   const finalShift = applySpecialRules({
+  //     baseShift,
+  //     override,
+  //     date: jsDate
+  //   });
+
+  //   const row = {
+  //     workDate: dateKey,
+  //     weekCycle: weekCycleFromDay(dayNumber),
+  //     dayName: dayNameFromDate(jsDate),
+
+  //     shiftType: finalShift.shiftType,
+  //     startTime: finalShift.startTime,
+  //     endTime: finalShift.endTime,
+  //     workedHours: Number(finalShift.workedHours || 0),
+  //     nightHours: Number(finalShift.nightHours || 0),
+  //     holidayPaidHours: Number(finalShift.holidayPaidHours || 0),
+
+  //     isHoliday: override?.type === "HOLIDAY" ? 1 : 0,
+  //     isStrike: override?.type === "STRIKE" ? 1 : 0,
+  //     isRest: override?.type === "REST" ? 1 : 0,
+  //     isVacation: override?.type === "VACATION" ? 1 : 0,
+  //     isSickLeave: override?.type === "SICK" ? 1 : 0,
+
+  //     source: override ? "MANUAL" : "AUTO"
+  //   };
+
+  //   summary.totalHours += row.workedHours;
+  //   summary.totalNightHours += row.nightHours;
+  //   summary.totalHolidayHours += row.holidayPaidHours;
+
+  //   rows.push(row);
+  // }
+
+  // summary.suggestedRestDays =
+  //   summary.totalHours > 204 ? Math.ceil((summary.totalHours - 204) / 12) : 0;
+
+  // return { rows, summary };
+
+
+
+
+
+
+
+
+
 
 async function getOrCreateAttendanceMonth({ userId, year, month }) {
   await query(
@@ -230,24 +325,43 @@ async function persistMonthDays(attendanceMonthId, rows) {
 async function updateMonthSummary(attendanceMonthId, summary) {
   await query(
     `UPDATE attendance_months
-     SET total_hours = ?, total_night_hours = ?, total_holiday_hours = ?, suggested_rest_days = ?
+     SET total_hours = ?, total_night_hours = ?, total_holiday_hours = ?,
+         suggested_rest_days = ?, worked_days = ?, total_holidays = ?, weekend_days = ?
      WHERE id = ?`,
     [
       summary.totalHours,
       summary.totalNightHours,
       summary.totalHolidayHours,
-      summary.suggestedRestDays,
+      summary.restDays,
+      summary.workedDays,
+      summary.totalHolidays,
+      summary.weekendDays,
       attendanceMonthId
     ]
   );
+}
+
+async function getUserCycleConfig(userId) {
+  const rows = await query(
+    `SELECT cycle_start_date, initial_week_type FROM users WHERE id = ? LIMIT 1`,
+    [userId]
+  );
+  const row = rows[0];
+  return {
+    cycleStartDate: row?.cycle_start_date
+      ? new Date(row.cycle_start_date)
+      : new Date(2026, 2, 31),
+    initialWeekType: row?.initial_week_type || "A"
+  };
 }
 
 async function recalculateMonth({ userId, year, month }) {
   const monthRow = await getOrCreateAttendanceMonth({ userId, year, month });
   const overrideMap = await getMonthOverrides(monthRow.id);
   const initialState = await getInitialStateFromPreviousMonth({ userId, year, month });
+  const { cycleStartDate, initialWeekType } = await getUserCycleConfig(userId);
 
-  const { rows, summary } = buildMonthRows({ year, month, overrideMap, initialState });
+  const { rows, summary } = buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate, initialWeekType });
 
   await persistMonthDays(monthRow.id, rows);
   await updateMonthSummary(monthRow.id, summary);
@@ -344,23 +458,29 @@ async function getAttendanceMonthService({ userId, year, month }) {
       totalHours: Number(monthRow.total_hours || 0),
       totalNightHours: Number(monthRow.total_night_hours || 0),
       totalHolidayHours: Number(monthRow.total_holiday_hours || 0),
-      suggestedRestDays: Number(monthRow.suggested_rest_days || 0)
+      suggestedRestDays: Number(monthRow.suggested_rest_days || 0),
+      workedDays: Number(monthRow.worked_days || 0),
+      totalHolidays: Number(monthRow.total_holidays || 0),
+      weekendDays: Number(monthRow.weekend_days || 0),
     }
   };
 }
 
-async function applyOverrideAndRecalculateService({ userId, year, month, date, type, strikeShift }) {
+async function applyOverrideAndRecalculateService({ userId, year, month, date, type, strikeShift, holidayWorked }) {
   const monthRow = await getOrCreateAttendanceMonth({ userId, year, month });
   const normalizedDate = normalizeDate(date);
 
+  const hwValue = holidayWorked === true ? 1 : holidayWorked === false ? 0 : null;
+
   await query(
     `INSERT INTO attendance_overrides
-     (attendance_month_id, work_date, type, strike_shift)
-     VALUES (?, ?, ?, ?)
+     (attendance_month_id, work_date, type, strike_shift, holiday_worked)
+     VALUES (?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
       type = VALUES(type),
-      strike_shift = VALUES(strike_shift)`,
-    [monthRow.id, normalizedDate, type, strikeShift || null]
+      strike_shift = VALUES(strike_shift),
+      holiday_worked = VALUES(holiday_worked)`,
+    [monthRow.id, normalizedDate, type, strikeShift || null, hwValue]
   );
 
   const { summary } = await recalculateMonth({ userId, year, month });
@@ -369,8 +489,51 @@ async function applyOverrideAndRecalculateService({ userId, year, month, date, t
   return summary;
 }
 
+async function manualUpdateDayService({ userId, year, month, date, startTime, endTime, workedHours }) {
+  const monthRow = await getOrCreateAttendanceMonth({ userId, year, month });
+
+  const shiftType = startTime === "20:00" ? "NIGHT" : "DAY";
+  const nightHours = shiftType === "NIGHT" ? 9 : 0;
+  const hours = Number(workedHours) || 0;
+
+  await query(
+    `UPDATE attendance_days
+     SET shift_type = ?, start_time = ?, end_time = ?,
+         worked_hours = ?, night_hours = ?, source = 'MANUAL'
+     WHERE attendance_month_id = ? AND work_date = ?`,
+    [shiftType, startTime, endTime, hours, hours > 0 ? nightHours : 0, monthRow.id, date]
+  );
+
+  const [result] = await query(
+    `SELECT
+       SUM(worked_hours) AS totalHours,
+       SUM(night_hours) AS totalNightHours,
+       SUM(holiday_paid_hours) AS totalHolidayHours,
+       SUM(worked_hours > 0) AS workedDays,
+       SUM(is_holiday) AS totalHolidays,
+       SUM(is_rest) AS restDays,
+       SUM(shift_type = 'DAY' AND DAYOFWEEK(work_date) IN (1, 7)) AS weekendDays
+     FROM attendance_days WHERE attendance_month_id = ?`,
+    [monthRow.id]
+  );
+
+  const summary = {
+    totalHours: Number(result.totalHours || 0),
+    totalNightHours: Number(result.totalNightHours || 0),
+    totalHolidayHours: Number(result.totalHolidayHours || 0),
+    workedDays: Number(result.workedDays || 0),
+    restDays: Number(result.restDays || 0),
+    totalHolidays: Number(result.totalHolidays || 0),
+    weekendDays: Number(result.weekendDays || 0),
+  };
+
+  await updateMonthSummary(monthRow.id, summary);
+  return summary;
+}
+
 module.exports = {
   generateAttendanceMonthService,
   getAttendanceMonthService,
-  applyOverrideAndRecalculateService
+  applyOverrideAndRecalculateService,
+  manualUpdateDayService
 };

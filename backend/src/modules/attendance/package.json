@@ -1,0 +1,12 @@
+{
+  "name": "attendance-engine-tests",
+  "version": "1.0.0",
+  "description": "Pruebas unitarias para el motor de horarios ciclo A/B",
+  "main": "attendance.engine.test.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

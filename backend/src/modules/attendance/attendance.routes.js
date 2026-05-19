@@ -3,7 +3,8 @@ const { authMiddleware } = require("../../middlewares/authMiddleware");
 const {
   generateAttendanceMonthService,
   getAttendanceMonthService,
-  applyOverrideAndRecalculateService
+  applyOverrideAndRecalculateService,
+  manualUpdateDayService
 } = require("./attendance.service");
 const { generateAttendancePDF } = require("./attendance.pdf");
 
@@ -41,14 +42,33 @@ router.get("/:year/:month", async (req, res, next) => {
 
 router.post("/override", async (req, res, next) => {
   try {
-    const { year, month, date, type, strikeShift } = req.body;
+    const { year, month, date, type, strikeShift, holidayWorked } = req.body;
     const data = await applyOverrideAndRecalculateService({
       userId: req.user.id,
       year: Number(year),
       month: Number(month),
       date,
       type,
-      strikeShift
+      strikeShift,
+      holidayWorked
+    });
+    res.json({ ok: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/day", async (req, res, next) => {
+  try {
+    const { year, month, date, startTime, endTime, workedHours } = req.body;
+    const data = await manualUpdateDayService({
+      userId: req.user.id,
+      year: Number(year),
+      month: Number(month),
+      date,
+      startTime,
+      endTime,
+      workedHours
     });
     res.json({ ok: true, data });
   } catch (error) {
