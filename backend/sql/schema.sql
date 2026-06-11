@@ -95,6 +95,7 @@ CREATE TABLE attendance_days (
 
 CREATE TABLE key_records (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  numero_sucursal VARCHAR(50) NULL,
   nombre VARCHAR(120) NOT NULL,
   mec1 VARCHAR(120) NULL,
   mec2 VARCHAR(120) NULL,

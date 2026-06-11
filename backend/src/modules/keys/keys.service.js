@@ -2,7 +2,7 @@
 const { query } = require("../../config/db");
 
 const KEY_FIELDS = [
-  "nombre", "mec1", "mec2", "mec3", "mec4", "mec5", "mec6",
+  "numero_sucursal", "nombre", "mec1", "mec2", "mec3", "mec4", "mec5", "mec6",
   "vol", "back1", "back2", "descripcion", "guardia1", "guardia2",
   "telefono_guardia1", "telefono_guardia2", "fecha_actualizacion"
 ];
@@ -14,7 +14,7 @@ async function listKeysService() {
 
 async function createKeyService(data) {
   const fields = [
-    "nombre", "mec1", "mec2", "mec3", "mec4", "mec5", "mec6",
+    "numero_sucursal", "nombre", "mec1", "mec2", "mec3", "mec4", "mec5", "mec6",
     "vol", "back1", "back2", "descripcion", "guardia1", "guardia2"
   ];
   const values = fields.map(f => data[f] || null);
