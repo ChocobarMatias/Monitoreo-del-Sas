@@ -9,10 +9,10 @@
   }
 }
 
- async function registerUserByAdminController(req, res, next) {
+async function registerUserByAdminController(req, res, next) {
   try {
-    const { name, email, password, role } = req.body;
-    const result = await registerUserByAdminService({ name, email, password, role });
+    const { name, email, password, role, grupo_sas_id } = req.body;
+    const result = await registerUserByAdminService({ name, email, password, role, grupo_sas_id });
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -92,7 +92,7 @@ async function loginService({ email, password }) {
   };
 }
 
-async function registerUserByAdminService({ name, email, password, role }) {
+async function registerUserByAdminService({ name, email, password, role, grupo_sas_id }) {
   const existing = await query(
     `SELECT id FROM users WHERE email = ? LIMIT 1`,
     [email]
@@ -107,16 +107,17 @@ async function registerUserByAdminService({ name, email, password, role }) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   const result = await query(
-    `INSERT INTO users (name, email, password_hash, role)
-     VALUES (?, ?, ?, ?)`,
-    [name, email, passwordHash, role]
+    `INSERT INTO users (name, email, password_hash, role, grupo_sas_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [name, email, passwordHash, role, grupo_sas_id || null]
   );
 
   return {
     id: result.insertId,
     name,
     email,
-    role
+    role,
+    grupo_sas_id: grupo_sas_id || null
   };
 }
 

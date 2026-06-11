@@ -4,9 +4,9 @@ const { getWeekType, getBaseShiftByCycle, applyRules } = require("./attendance.e
 function normalizeDate(dateValue) {
   const date = new Date(dateValue);
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -343,14 +343,26 @@ async function updateMonthSummary(attendanceMonthId, summary) {
 
 async function getUserCycleConfig(userId) {
   const rows = await query(
-    `SELECT cycle_start_date, initial_week_type FROM users WHERE id = ? LIMIT 1`,
+    `SELECT u.cycle_start_date, u.initial_week_type, u.grupo_sas_id,
+            g.tipo_inicio AS grupo_tipo_inicio, g.cycle_start_date AS grupo_cycle_start
+     FROM users u
+     LEFT JOIN grupos_sas g ON g.id = u.grupo_sas_id
+     WHERE u.id = ? LIMIT 1`,
     [userId]
   );
   const row = rows[0];
+
+  if (row?.grupo_sas_id) {
+    return {
+      cycleStartDate: new Date(row.grupo_cycle_start),
+      initialWeekType: row.grupo_tipo_inicio
+    };
+  }
+
   return {
     cycleStartDate: row?.cycle_start_date
       ? new Date(row.cycle_start_date)
-      : new Date(2026, 2, 31),
+      : new Date(2026, 5, 1),
     initialWeekType: row?.initial_week_type || "A"
   };
 }
