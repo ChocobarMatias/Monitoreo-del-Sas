@@ -78,4 +78,25 @@ async function calculateSalaryService({ userId, year, month, scaleId }) {
   };
 }
 
-module.exports = { calculateSalaryService };
+async function listConveniosService() {
+  return query(
+    `SELECT * FROM convenios_salariales ORDER BY vigente_desde DESC`,
+    []
+  );
+}
+
+async function createConvenioService({ nombre, sueldoBasico, presentismo, viaticosNoRem, aniosAntiguedad, sumaNR, vigenteDesde }) {
+  const result = await query(
+    `INSERT INTO convenios_salariales
+       (nombre, sueldo_basico, presentismo, viaticos_no_rem, anios_antiguedad, suma_no_remunerativa, vigente_desde)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [nombre, sueldoBasico, presentismo, viaticosNoRem, aniosAntiguedad, sumaNR, vigenteDesde]
+  );
+  const [row] = await query(
+    `SELECT * FROM convenios_salariales WHERE id = ? LIMIT 1`,
+    [result.insertId]
+  );
+  return row;
+}
+
+module.exports = { calculateSalaryService, listConveniosService, createConvenioService };

@@ -1,6 +1,19 @@
 CREATE DATABASE IF NOT EXISTS guard_app;
 USE guard_app;
 
+CREATE TABLE grupos_sas (
+  id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  nombre VARCHAR(120) NOT NULL,
+  tipo_inicio ENUM('A','B') NOT NULL,
+  cycle_start_date DATE NOT NULL DEFAULT '2026-06-01',
+  descripcion VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO grupos_sas (nombre, tipo_inicio, cycle_start_date, descripcion) VALUES
+  ('Grupo 1', 'A', '2026-06-01', 'Semana tipo A en la semana del 01/06/2026'),
+  ('Grupo 2', 'B', '2026-06-01', 'Semana tipo B en la semana del 01/06/2026');
+
 CREATE TABLE users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
@@ -11,8 +24,10 @@ CREATE TABLE users (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   cycle_start_date DATE NULL,
   initial_week_type ENUM('A','B') NOT NULL DEFAULT 'A',
+  grupo_sas_id INT UNSIGNED NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_users_grupo_sas FOREIGN KEY (grupo_sas_id) REFERENCES grupos_sas(id)
 );
 
 -- Para instalaciones existentes:
@@ -98,6 +113,18 @@ CREATE TABLE key_records (
   telefono_guardia2 VARCHAR(40) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS convenios_salariales (
+  id            BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  nombre        VARCHAR(120)   NOT NULL,
+  sueldo_basico DECIMAL(12,2)  NOT NULL,
+  presentismo   DECIMAL(12,2)  NOT NULL DEFAULT 0,
+  viaticos_no_rem DECIMAL(12,2) NOT NULL DEFAULT 0,
+  anios_antiguedad INT          NOT NULL DEFAULT 0,
+  suma_no_remunerativa DECIMAL(12,2) NOT NULL DEFAULT 0,
+  vigente_desde DATE            NOT NULL,
+  created_at    TIMESTAMP      DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE salary_scale_versions (

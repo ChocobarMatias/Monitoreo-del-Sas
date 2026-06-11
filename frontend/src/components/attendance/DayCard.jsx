@@ -30,7 +30,7 @@ function statusTag(day) {
 export function DayRow({ day, index, onEdit }) {
   return (
     <tr className={`border-b border-slate-200 ${rowBg(day)}`}>
-      <td className="px-2 py-2 text-center text-xs font-bold text-slate-500 w-8">{index + 1}</td>
+      <td className="px-2 py-2 text-center text-xs font-bold text-slate-500 w-8">{new Date(day.work_date + "T00:00:00").getDate()}</td>
       <td className="px-2 py-2 text-xs font-semibold">
         {day.day_name}
         {statusTag(day)}

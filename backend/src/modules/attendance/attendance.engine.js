@@ -33,18 +33,15 @@ function isWeekend(day) {
  */
 function getBaseShiftByCycle(weekType, dayOfWeek) {
   if (weekType === "A") {
-    // Lunes(1), Miércoles(3), Viernes(5), Sábado(6), Domingo(0): NOCHE
-    if ([1, 3, 5, 6, 0].includes(dayOfWeek)) return "NIGHT";
-    // Martes(2), Jueves(4): libre
-    return "NONE";
+    // Semana A SAS: Martes(2), Jueves(4) → NOCHE; Sábado(6), Domingo(0) → DÍA
+    if ([2, 4].includes(dayOfWeek)) return "NIGHT";
+    if ([6, 0].includes(dayOfWeek)) return "DAY";
+    return "NONE"; // Lunes, Miércoles, Viernes → descanso
   }
   if (weekType === "B") {
-    // Martes(2), Jueves(4): NOCHE
-    if ([2, 4].includes(dayOfWeek)) return "NIGHT";
-    // Sábado(6), Domingo(0): DÍA
-    if ([6, 0].includes(dayOfWeek)) return "DAY";
-    // Lunes(1), Miércoles(3), Viernes(5): libre
-    return "NONE";
+    // Semana B SAS: Lunes(1), Miércoles(3), Viernes(5), Sábado(6), Domingo(0) → NOCHE
+    if ([1, 3, 5, 6, 0].includes(dayOfWeek)) return "NIGHT";
+    return "NONE"; // Martes, Jueves → descanso
   }
   return "NONE";
 }
