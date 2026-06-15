@@ -186,24 +186,27 @@ async function forgotPasswordService(email) {
 
   const user = rows[0];
   const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
 
   await query(
     `INSERT INTO password_resets (user_id, token, expires_at)
      VALUES (?, ?, ?)`,
-    [user.id, rawToken, expiresAt]
+    [user.id, tokenHash, expiresAt]
   );
 
   return { ok: true, token: rawToken };
 }
 
 async function resetPasswordService(token, newPassword) {
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
   const rows = await query(
     `SELECT pr.id, pr.user_id, pr.expires_at, pr.used_at
      FROM password_resets pr
      WHERE pr.token = ?
      LIMIT 1`,
-    [token]
+    [tokenHash]
   );
 
   const reset = rows[0];
