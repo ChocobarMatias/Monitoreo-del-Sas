@@ -1,5 +1,10 @@
+const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const { pool, query } = require("../../config/db");
+const { signAccessToken, signRefreshToken } = require("../../utils/jwt");
+
 // Controladores HTTP
- async function loginController(req, res, next) {
+async function loginController(req, res, next) {
   try {
     const { email, password } = req.body;
     const result = await loginService({ email, password });
@@ -39,7 +44,7 @@ async function validatePinController(req, res, next) {
   }
 }
 
- async function forgotPasswordController(req, res, next) {
+async function forgotPasswordController(req, res, next) {
   try {
     const { email } = req.body;
     const result = await forgotPasswordService(email);
@@ -49,10 +54,22 @@ async function validatePinController(req, res, next) {
   }
 }
 
-const bcrypt = require("bcrypt");
-const crypto = require("crypto");
-const { pool, query } = require("../../config/db");
-const { signAccessToken, signRefreshToken } = require("../../utils/jwt");
+async function resetPasswordController(req, res, next) {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword || newPassword.length < 8) {
+      const error = new Error("Token y contraseña (mínimo 8 caracteres) requeridos");
+      error.status = 400;
+      throw error;
+    }
+
+    const result = await resetPasswordService(token, newPassword);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
 
 async function loginService({ email, password }) {
   const rows = await query(
@@ -231,23 +248,6 @@ async function resetPasswordService(token, newPassword) {
   }
 
   return { ok: true };
-}
-
-async function resetPasswordController(req, res, next) {
-  try {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword || newPassword.length < 8) {
-      const error = new Error("Token y contraseña (mínimo 8 caracteres) requeridos");
-      error.status = 400;
-      throw error;
-    }
-
-    const result = await resetPasswordService(token, newPassword);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
 }
 
 module.exports = { loginController, registerUserByAdminController, setPinController, validatePinController, forgotPasswordController, resetPasswordController };
