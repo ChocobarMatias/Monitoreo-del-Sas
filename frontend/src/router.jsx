@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
+import { PublicOnlyRoute } from "./components/common/PublicOnlyRoute";
 import { RoleGuard } from "./components/common/RoleGuard";
 import { MobileLayout } from "./components/layout/MobileLayout";
 import LoginPage from "./pages/auth/LoginPage";
@@ -19,9 +20,14 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { path: "/login", element: <LoginPage /> },
-      { path: "/forgot-password", element: <ForgotPasswordPage /> },
-      { path: "/reset-password", element: <ResetPasswordPage /> },
+      {
+        element: <PublicOnlyRoute />,
+        children: [
+          { path: "/login", element: <LoginPage /> },
+          { path: "/forgot-password", element: <ForgotPasswordPage /> },
+          { path: "/reset-password", element: <ResetPasswordPage /> },
+        ]
+      },
       {
         element: <ProtectedRoute />,
         children: [
