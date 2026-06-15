@@ -9,13 +9,13 @@ const {
 } = require("./auth.controller");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 const { roleMiddleware } = require("../../middlewares/roleMiddleware");
-const { forgotPasswordLimiter, loginLimiter } = require("../../middlewares/rateLimiters");
+const { forgotPasswordLimiter, loginLimiter, resetPasswordLimiter } = require("../../middlewares/rateLimiters");
 
 const router = Router();
 
 router.post("/login", loginLimiter, loginController);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordController);
-router.post("/reset-password", forgotPasswordLimiter, resetPasswordController);
+router.post("/reset-password", resetPasswordLimiter, resetPasswordController);
 
 router.post(
   "/users",

@@ -23,6 +23,17 @@ const forgotPasswordLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5,
+  message: {
+    ok: false,
+    message: "Demasiados intentos de reset de contraseña. Intenta nuevamente más tarde."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 function errorMiddleware(error, _req, res, _next) {
   const status = error.status || 500;
   res.status(status).json({
@@ -34,5 +45,6 @@ function errorMiddleware(error, _req, res, _next) {
 module.exports = {
   loginLimiter,
   forgotPasswordLimiter,
+  resetPasswordLimiter,
   errorMiddleware
 };

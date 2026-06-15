@@ -51,7 +51,7 @@ async function validatePinController(req, res, next) {
 
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const { query } = require("../../config/db");
+const { pool, query } = require("../../config/db");
 const { signAccessToken, signRefreshToken } = require("../../utils/jwt");
 
 async function loginService({ email, password }) {
@@ -211,15 +211,24 @@ async function resetPasswordService(token, newPassword) {
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
 
-  await query(
-    `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
-    [passwordHash, reset.user_id]
-  );
-
-  await query(
-    `UPDATE password_resets SET used_at = NOW() WHERE id = ?`,
-    [reset.id]
-  );
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.execute(
+      `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
+      [passwordHash, reset.user_id]
+    );
+    await conn.execute(
+      `UPDATE password_resets SET used_at = NOW() WHERE id = ?`,
+      [reset.id]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 
   return { ok: true };
 }
