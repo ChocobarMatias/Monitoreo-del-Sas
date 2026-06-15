@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/", authMiddleware, listKeysController);
 router.post("/", authMiddleware, createKeyController);
-router.put("/:id", authMiddleware, updateKeyController);
+router.put("/:id", authMiddleware, roleMiddleware("ADMIN"), updateKeyController);
 router.delete("/:id", authMiddleware, roleMiddleware("ADMIN"), deleteKeyController);
 
 module.exports = router;
