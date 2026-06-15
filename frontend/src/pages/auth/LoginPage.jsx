@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/auth.store";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -8,6 +8,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
+
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -25,6 +28,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-soft">
+        {successMessage ? <p className="mb-4 text-sm text-emerald-700">{successMessage}</p> : null}
         <div className="mb-6">
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Guard App</p>
           <h1 className="mt-2 text-3xl font-black text-slate-950">Ingresar</h1>

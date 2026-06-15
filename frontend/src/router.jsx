@@ -5,6 +5,7 @@ import { RoleGuard } from "./components/common/RoleGuard";
 import { MobileLayout } from "./components/layout/MobileLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import AttendancePage from "./pages/attendance/AttendancePage";
 import KeysPage from "./pages/keys/KeysPage";
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
       {
         element: <ProtectedRoute />,
         children: [
