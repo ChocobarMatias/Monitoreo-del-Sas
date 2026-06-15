@@ -1,11 +1,11 @@
-
 const { Router } = require("express");
 const {
   forgotPasswordController,
   loginController,
   registerUserByAdminController,
   setPinController,
-  validatePinController
+  validatePinController,
+  resetPasswordController
 } = require("./auth.controller");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 const { roleMiddleware } = require("../../middlewares/roleMiddleware");
@@ -15,6 +15,7 @@ const router = Router();
 
 router.post("/login", loginLimiter, loginController);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordController);
+router.post("/reset-password", forgotPasswordLimiter, resetPasswordController);
 
 router.post(
   "/users",

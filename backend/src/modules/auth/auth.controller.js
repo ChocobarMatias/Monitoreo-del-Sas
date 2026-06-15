@@ -180,4 +180,65 @@ async function forgotPasswordService(email) {
   return { ok: true, token: rawToken };
 }
 
-module.exports = { loginController, registerUserByAdminController, setPinController, validatePinController, forgotPasswordController };
+async function resetPasswordService(token, newPassword) {
+  const rows = await query(
+    `SELECT pr.id, pr.user_id, pr.expires_at, pr.used_at
+     FROM password_resets pr
+     WHERE pr.token = ?
+     LIMIT 1`,
+    [token]
+  );
+
+  const reset = rows[0];
+
+  if (!reset) {
+    const error = new Error("Token inválido");
+    error.status = 400;
+    throw error;
+  }
+
+  if (reset.used_at) {
+    const error = new Error("El token ya fue utilizado");
+    error.status = 400;
+    throw error;
+  }
+
+  if (new Date(reset.expires_at) < new Date()) {
+    const error = new Error("El token expiró");
+    error.status = 400;
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  await query(
+    `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
+    [passwordHash, reset.user_id]
+  );
+
+  await query(
+    `UPDATE password_resets SET used_at = NOW() WHERE id = ?`,
+    [reset.id]
+  );
+
+  return { ok: true };
+}
+
+async function resetPasswordController(req, res, next) {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword || newPassword.length < 8) {
+      const error = new Error("Token y contraseña (mínimo 8 caracteres) requeridos");
+      error.status = 400;
+      throw error;
+    }
+
+    const result = await resetPasswordService(token, newPassword);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { loginController, registerUserByAdminController, setPinController, validatePinController, forgotPasswordController, resetPasswordController };
