@@ -119,17 +119,22 @@ async function forgotPasswordService(email) {
 
   const user = rows[0];
   const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
 
   await query(
     `INSERT INTO password_resets (user_id, token, expires_at)
      VALUES (?, ?, ?)`,
-    [user.id, rawToken, expiresAt]
+    [user.id, tokenHash, expiresAt]
   );
 
   return { ok: true, token: rawToken };
 }
 
-module.export = {
+module.exports = {
   loginService,
-  registerUserByAdminService, }
+  registerUserByAdminService,
+  setPinService,
+  validatePinService,
+  forgotPasswordService
+};

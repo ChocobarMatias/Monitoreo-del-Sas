@@ -211,20 +211,8 @@ async function resetPasswordService(token, newPassword) {
 
   const reset = rows[0];
 
-  if (!reset) {
-    const error = new Error("Token inválido");
-    error.status = 400;
-    throw error;
-  }
-
-  if (reset.used_at) {
-    const error = new Error("El token ya fue utilizado");
-    error.status = 400;
-    throw error;
-  }
-
-  if (new Date(reset.expires_at) < new Date()) {
-    const error = new Error("El token expiró");
+  if (!reset || reset.used_at || new Date(reset.expires_at) < new Date()) {
+    const error = new Error("Token inválido o expirado");
     error.status = 400;
     throw error;
   }
