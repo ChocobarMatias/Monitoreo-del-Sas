@@ -185,6 +185,13 @@ async function forgotPasswordService(email) {
   }
 
   const user = rows[0];
+
+  await query(
+    `UPDATE password_resets SET used_at = NOW()
+     WHERE user_id = ? AND used_at IS NULL`,
+    [user.id]
+  );
+
   const rawToken = crypto.randomBytes(32).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
