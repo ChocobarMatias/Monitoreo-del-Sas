@@ -44,6 +44,10 @@ function getEmptySummary() {
     restDays: 0,
     totalHolidays: 0,
     weekendDays: 0,
+    totalDays: 0,
+    holidaysWorked: 0,
+    justificationDays: 0,
+    overtimeHours: 0,
   };
 }
 
@@ -63,6 +67,7 @@ function buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate
   const daysInMonth = new Date(year, month, 0).getDate();
   const rows = [];
   const summary = getEmptySummary();
+  summary.totalDays = daysInMonth;
   let prevWorked = initialState?.previousWorked || false;
   let prevShiftType = initialState?.lastWorkedShiftType || null;
 
@@ -113,8 +118,12 @@ function buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate
     summary.totalHours += row.workedHours;
     summary.totalNightHours += row.nightHours;
     summary.totalHolidayHours += row.holidayPaidHours;
-    if (isHoliday) summary.totalHolidays++;
+    if (isHoliday) {
+      summary.totalHolidays++;
+      if (row.workedHours > 0) summary.holidaysWorked++;
+    }
     if (isRest) summary.restDays++;
+    if (isVacation || isSickLeave) summary.justificationDays++;
     rows.push(row);
 
     if (row.workedHours > 0) {
@@ -129,6 +138,7 @@ function buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate
     }
   }
 
+  summary.overtimeHours = Math.max(0, summary.totalHours - 200);
   return { rows, summary };
 }
 
@@ -326,7 +336,8 @@ async function updateMonthSummary(attendanceMonthId, summary) {
   await query(
     `UPDATE attendance_months
      SET total_hours = ?, total_night_hours = ?, total_holiday_hours = ?,
-         suggested_rest_days = ?, worked_days = ?, total_holidays = ?, weekend_days = ?
+         suggested_rest_days = ?, worked_days = ?, total_holidays = ?, weekend_days = ?,
+         total_days = ?, holidays_worked = ?, justification_days = ?, overtime_hours = ?
      WHERE id = ?`,
     [
       summary.totalHours,
@@ -336,6 +347,10 @@ async function updateMonthSummary(attendanceMonthId, summary) {
       summary.workedDays,
       summary.totalHolidays,
       summary.weekendDays,
+      summary.totalDays,
+      summary.holidaysWorked,
+      summary.justificationDays,
+      summary.overtimeHours,
       attendanceMonthId
     ]
   );
@@ -474,6 +489,10 @@ async function getAttendanceMonthService({ userId, year, month }) {
       workedDays: Number(monthRow.worked_days || 0),
       totalHolidays: Number(monthRow.total_holidays || 0),
       weekendDays: Number(monthRow.weekend_days || 0),
+      totalDays: Number(monthRow.total_days || 0),
+      holidaysWorked: Number(monthRow.holidays_worked || 0),
+      justificationDays: Number(monthRow.justification_days || 0),
+      overtimeHours: Number(monthRow.overtime_hours || 0),
     }
   };
 }
@@ -524,7 +543,11 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
        SUM(worked_hours > 0) AS workedDays,
        SUM(is_holiday) AS totalHolidays,
        SUM(is_rest) AS restDays,
-       SUM(shift_type = 'DAY' AND DAYOFWEEK(work_date) IN (1, 7)) AS weekendDays
+       SUM(shift_type = 'DAY' AND DAYOFWEEK(work_date) IN (1, 7)) AS weekendDays,
+       COUNT(*) AS totalDays,
+       SUM(is_holiday = 1 AND worked_hours > 0) AS holidaysWorked,
+       SUM(is_vacation = 1 OR is_sick_leave = 1) AS justificationDays,
+       GREATEST(0, SUM(worked_hours) - 200) AS overtimeHours
      FROM attendance_days WHERE attendance_month_id = ?`,
     [monthRow.id]
   );
@@ -537,6 +560,10 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
     restDays: Number(result.restDays || 0),
     totalHolidays: Number(result.totalHolidays || 0),
     weekendDays: Number(result.weekendDays || 0),
+    totalDays: Number(result.totalDays || 0),
+    holidaysWorked: Number(result.holidaysWorked || 0),
+    justificationDays: Number(result.justificationDays || 0),
+    overtimeHours: Number(result.overtimeHours || 0),
   };
 
   await updateMonthSummary(monthRow.id, summary);
