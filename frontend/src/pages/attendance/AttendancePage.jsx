@@ -11,6 +11,11 @@ function sortByDate(rows) {
   return [...rows].sort((a, b) => a.work_date.localeCompare(b.work_date));
 }
 
+function filterByMonth(rows, year, month) {
+  const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+  return rows.filter((r) => r.work_date.startsWith(prefix));
+}
+
 export default function AttendancePage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -31,10 +36,10 @@ export default function AttendancePage() {
         await api.post("/attendance/generate", { year, month });
         const regenerated = await api.get(`/attendance/${year}/${month}`);
         const rp = regenerated?.data?.data || {};
-        setRows(sortByDate(Array.isArray(rp?.data) ? rp.data : []));
+        setRows(sortByDate(filterByMonth(Array.isArray(rp?.data) ? rp.data : [], year, month)));
         setSummary(rp?.summary || {});
       } else {
-        setRows(sortByDate(monthRows));
+        setRows(sortByDate(filterByMonth(monthRows, year, month)));
         setSummary(payload?.summary || {});
       }
     } finally {
@@ -47,7 +52,7 @@ export default function AttendancePage() {
     try {
       const { data } = await api.post("/attendance/generate", { year, month });
       const payload = data?.data || {};
-      setRows(sortByDate(Array.isArray(payload?.data) ? payload.data : []));
+      setRows(sortByDate(filterByMonth(Array.isArray(payload?.data) ? payload.data : [], year, month)));
       setSummary(payload?.summary || {});
     } finally {
       setLoading(false);

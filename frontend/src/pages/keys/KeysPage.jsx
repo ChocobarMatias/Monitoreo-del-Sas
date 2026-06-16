@@ -8,6 +8,7 @@ import { api } from "../../lib/axios";
 import { useAuthStore } from "../../store/auth.store";
 
 const initialForm = {
+  numero_sucursal: "",
   nombre: "",
   mec1: "",
   mec2: "",
@@ -29,9 +30,10 @@ const initialForm = {
 const FORM_FIELDS = Object.keys(initialForm);
 
 const FIELD_LABELS = {
+  numero_sucursal: "N° Sucursal",
   nombre: "Nombre",
   mec1: "Clave Mecanica 1", mec2: "Clave Mecanica 2", mec3: "Clave Mecanica 3",
-  mec4: "Clave Mecanica 4", mec5: "Clave Mecanica 5", mec6: "Clave Mecanica 6",
+  mec4: "Clave Mecanica 4", mec5: "Clave Mecanica 5", mec6: "Volumetrica 1",
   vol: "Volumetrica 1",
   back1: "BACK1", back2: "BACK2",
   descripcion: "Descripción",
@@ -42,7 +44,7 @@ const FIELD_LABELS = {
 };
 
 const COLUMNS = [
-  { key: "N° Sucursal", label: "N° Sucursal" },
+  { key: "numero_sucursal", label: "N° Sucursal" },
   { key: "nombre", label: "Nombre" },
   { key: "guardia1", label: "Guardia 1" },
   { key: "guardia2", label: "Guardia 2" },

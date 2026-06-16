@@ -1,14 +1,12 @@
-
-
 const { Router } = require("express");
-const { listKeysController, createKeyController, updateKeyController, deleteKeyController, calculateSalaryController } = require("./keys.controller");
+const { listKeysController, createKeyController, updateKeyController, deleteKeyController } = require("./keys.controller");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
+const { roleMiddleware } = require("../../middlewares/roleMiddleware");
 const router = Router();
 
-router.get("/", listKeysController);
-router.post("/", createKeyController);
-router.put("/:id", updateKeyController);
-router.delete("/:id", authMiddleware, deleteKeyController);
-router.post("/calculate", calculateSalaryController);
+router.get("/", authMiddleware, listKeysController);
+router.post("/", authMiddleware, createKeyController);
+router.put("/:id", authMiddleware, roleMiddleware("ADMIN"), updateKeyController);
+router.delete("/:id", authMiddleware, roleMiddleware("ADMIN"), deleteKeyController);
 
 module.exports = router;

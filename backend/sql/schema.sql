@@ -41,7 +41,8 @@ CREATE TABLE password_resets (
   expires_at DATETIME NOT NULL,
   used_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE INDEX idx_token (token)
 );
 
 CREATE TABLE attendance_months (
@@ -95,6 +96,7 @@ CREATE TABLE attendance_days (
 
 CREATE TABLE key_records (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  numero_sucursal VARCHAR(50) NULL,
   nombre VARCHAR(120) NOT NULL,
   mec1 VARCHAR(120) NULL,
   mec2 VARCHAR(120) NULL,

@@ -78,6 +78,7 @@ export default function SalaryPage() {
 
   // Asistencia
   const [attRows, setAttRows] = useState([]);
+  const [attSummary, setAttSummary] = useState({});
   const [attLoading, setAttLoading] = useState(false);
 
   const [showResults, setShowResults] = useState(false);
@@ -110,8 +111,13 @@ export default function SalaryPage() {
     setAttLoading(true);
     api
       .get(`/attendance/${year}/${month}`)
-      .then(({ data }) => { if (active) setAttRows(data?.data?.data ?? []); })
-      .catch(() => { if (active) setAttRows([]); })
+      .then(({ data }) => {
+        if (active) {
+          setAttRows(data?.data?.data ?? []);
+          setAttSummary(data?.data?.summary ?? {});
+        }
+      })
+      .catch(() => { if (active) { setAttRows([]); setAttSummary({}); } })
       .finally(() => { if (active) setAttLoading(false); });
     return () => { active = false; };
   }, [year, month]);
@@ -133,16 +139,14 @@ export default function SalaryPage() {
     setShowResults(false);
   }
 
-  // Horas desde asistencia
+  // Horas desde el summary del backend — misma fuente que la Planilla de Asistencia
   const hrs = useMemo(() => {
-    const total = attRows.reduce((s, r) => s + n(r.worked_hours), 0);
-    const feriadoHrs = attRows.filter((r) => r.is_holiday === true).reduce((s, r) => s + n(r.worked_hours), 0);
-    const sinFeriado = total - feriadoHrs;
-    const nocturnas = attRows
-      .filter((r) => r.start_time >= "20:00" && n(r.worked_hours) > 0)
-      .reduce((s, r) => s + n(r.worked_hours), 0);
-    return { total, feriadoHrs, sinFeriado, nocturnas, adicionales: total - 200 };
-  }, [attRows]);
+    const sinFeriado = n(attSummary.totalHours);          // igual a "Horas trabajadas" de la planilla
+    const feriadoHrs = n(attSummary.totalHolidayHours);   // horas trabajadas en feriados
+    const total      = sinFeriado + feriadoHrs;
+    const nocturnas  = n(attSummary.totalNightHours);
+    return { total, feriadoHrs, sinFeriado, nocturnas, adicionales: sinFeriado - 200 };
+  }, [attSummary]);
 
   // Convenio seleccionado
   const convenio = convenios.find((c) => c.id === selectedId) ?? null;
@@ -162,16 +166,23 @@ export default function SalaryPage() {
 
     const valorHora         = basico / 200;
     const valorHoraNocturna = basico * 0.001;
-    const feriadoVal        = feriadoBlanco ? valorHora * feriadoHrs : 0;
+
+    // horasBlanco: horas usadas en cálculo blanco — máximo 200 (adicionales van a negro)
+    const horasBlanco = Math.min(sinFeriado, 200);
+
+    // feriadoBlanco=true  → feriado suma al remunerativo (blanco)
+    // feriadoBlanco=false → feriado suma al negro (valor hora × horas feriado)
+    const feriadoVal     = feriadoBlanco ? valorHora * feriadoHrs : 0;
+    const feriadoEnNegro = feriadoBlanco ? 0 : valorHora * feriadoHrs;
 
     const antiguedad =
       adicionales < 0
-        ? ((basico * sinFeriado) / 200 + (pres * sinFeriado) / 200 + feriadoVal) * 0.01 * anios
+        ? ((basico * horasBlanco) / 200 + (pres * horasBlanco) / 200 + feriadoVal) * 0.01 * anios
         : (basico + feriadoVal + pres) * 0.01 * anios;
 
     const remunerativo =
       adicionales < 0
-        ? (sinFeriado * basico) / 200 + (sinFeriado * pres) / 200 + feriadoVal + antiguedad
+        ? (horasBlanco * basico) / 200 + (horasBlanco * pres) / 200 + feriadoVal + antiguedad
         : basico + feriadoVal + pres + antiguedad;
 
     const noRemunerativo =
@@ -185,12 +196,14 @@ export default function SalaryPage() {
     const benefConvenio = basico * 0.0238;
     const descuento     = jubilacion + obraSocial + afip + benefConvenio;
     const totalBlanco   = remunerativo + noRemunerativo - descuento;
-    const hrsNegro      = Math.max(0, sinFeriado - 200);
-    const totalNegro    = hrsNegro * valorHora + nocturnas * valorHoraNocturna;
+
+    // hrsNegro = adicional clampeado a 0 (nunca negativo)
+    const hrsNegro   = Math.max(0, sinFeriado - 200);
+    const totalNegro = hrsNegro * valorHora + nocturnas * valorHoraNocturna + feriadoEnNegro;
 
     return {
       basico, pres, viat, snr,
-      valorHora, valorHoraNocturna, feriadoVal, antiguedad,
+      valorHora, valorHoraNocturna, feriadoVal, feriadoEnNegro, antiguedad,
       remunerativo, noRemunerativo,
       jubilacion, obraSocial, afip, benefConvenio, descuento,
       totalBlanco, hrsNegro, totalNegro,
@@ -309,14 +322,10 @@ export default function SalaryPage() {
           {attLoading && <span className="text-[10px] text-slate-400">Cargando...</span>}
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <AttChip label="Total hs" value={hrs.total.toFixed(1)} />
-          <AttChip label="Sin feriado" value={hrs.sinFeriado.toFixed(1)} />
-          <AttChip label="Feriado hs" value={hrs.feriadoHrs.toFixed(1)} />
+          <AttChip label="Hs Trabajadas" value={hrs.sinFeriado.toFixed(1)} />
+          <AttChip label="Hs Feriado" value={hrs.feriadoHrs.toFixed(1)} />
           <AttChip label="Nocturnas" value={hrs.nocturnas.toFixed(1)} />
-          <AttChip
-            label="Adicionales"
-            value={hrs.adicionales >= 0 ? `+${hrs.adicionales.toFixed(1)}` : hrs.adicionales.toFixed(1)}
-          />
+          <AttChip label="Adicionales" value={Math.max(0, hrs.adicionales).toFixed(1)} />
         </div>
       </div>
 
@@ -358,8 +367,8 @@ export default function SalaryPage() {
             <div className="px-5 py-4 space-y-5">
               <div>
                 <SectionLabel>Horas</SectionLabel>
-                <ResultRow label="Horas Básico" value={`${hrs.total.toFixed(1)} hs`} />
-                <ResultRow label="Horas Adicionales" value={`${Math.max(0, hrs.adicionales).toFixed(1)} hs`} />
+                <ResultRow label="Horas Básico (blanco)" value={`${Math.min(hrs.sinFeriado, 200).toFixed(1)} hs`} />
+                <ResultRow label="Horas Adicionales (negro)" value={`${Math.max(0, hrs.adicionales).toFixed(1)} hs`} />
               </div>
               <div>
                 <SectionLabel>Valores</SectionLabel>
@@ -405,6 +414,9 @@ export default function SalaryPage() {
                 ["Importe Hs en Negro", formatCurrency(calc.hrsNegro * calc.valorHora)],
                 ["Horas Nocturnas", `${hrs.nocturnas.toFixed(1)} hs`],
                 ["Importe Hs Nocturnas", formatCurrency(hrs.nocturnas * calc.valorHoraNocturna)],
+                ...(!feriadoBlanco && hrs.feriadoHrs > 0
+                  ? [["Feriado en Negro", formatCurrency(calc.feriadoEnNegro)]]
+                  : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between border-b border-slate-700 py-2.5 last:border-0">
                   <span className="text-sm text-slate-400">{label}</span>

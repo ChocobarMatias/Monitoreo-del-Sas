@@ -1,7 +1,7 @@
 
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const { query } = require("../../config/db");
+const { pool, query } = require("../../config/db");
 const { signAccessToken, signRefreshToken } = require("../../utils/jwt");
 
 async function loginService({ email, password }) {
@@ -118,18 +118,74 @@ async function forgotPasswordService(email) {
   }
 
   const user = rows[0];
+
+  await query(
+    `UPDATE password_resets SET used_at = NOW()
+     WHERE user_id = ? AND used_at IS NULL`,
+    [user.id]
+  );
+
   const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
 
   await query(
     `INSERT INTO password_resets (user_id, token, expires_at)
      VALUES (?, ?, ?)`,
-    [user.id, rawToken, expiresAt]
+    [user.id, tokenHash, expiresAt]
   );
 
   return { ok: true, token: rawToken };
 }
 
-module.export = {
+async function resetPasswordService(token, newPassword) {
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  const rows = await query(
+    `SELECT pr.id, pr.user_id, pr.expires_at, pr.used_at
+     FROM password_resets pr
+     WHERE pr.token = ?
+     LIMIT 1`,
+    [tokenHash]
+  );
+
+  const reset = rows[0];
+
+  if (!reset || reset.used_at || new Date(reset.expires_at) < new Date()) {
+    const error = new Error("Token inválido o expirado");
+    error.status = 400;
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.execute(
+      `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
+      [passwordHash, reset.user_id]
+    );
+    await conn.execute(
+      `UPDATE password_resets SET used_at = NOW() WHERE id = ?`,
+      [reset.id]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  return { ok: true };
+}
+
+module.exports = {
   loginService,
-  registerUserByAdminService, }
+  registerUserByAdminService,
+  setPinService,
+  validatePinService,
+  forgotPasswordService,
+  resetPasswordService
+};
