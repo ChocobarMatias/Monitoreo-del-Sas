@@ -1,7 +1,7 @@
 
 const { Router } = require("express");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
-const { setPinService } = require("./pin.service");
+const { setPinService } = require("../auth/auth.service");
 
 const router = Router();
 
