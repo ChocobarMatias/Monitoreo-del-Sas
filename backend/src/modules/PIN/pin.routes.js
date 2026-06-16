@@ -1,9 +1,21 @@
-router.get("/", authMiddleware, pinMiddleware, async (req, res) => {
-  const data = await getKeysService();
-  res.json({ ok: true, data });
+
+const { Router } = require("express");
+const { authMiddleware } = require("../../middlewares/authMiddleware");
+const { setPinService } = require("./pin.service");
+
+const router = Router();
+
+router.post("/set", authMiddleware, async (req, res, next) => {
+  try {
+    const { pin } = req.body;
+    if (!pin || typeof pin !== "string" || pin.length < 4) {
+      return res.status(400).json({ ok: false, message: "PIN inválido" });
+    }
+    const data = await setPinService(req.user.id, pin);
+    res.json({ ok: true, data });
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.post("/", authMiddleware, pinMiddleware, async (req, res) => {
-  const id = await createKeyService(req.body);
-  res.json({ ok: true, id });
-});
+module.exports = router;
