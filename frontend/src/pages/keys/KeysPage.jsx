@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
@@ -33,8 +34,8 @@ const FIELD_LABELS = {
   numero_sucursal: "N° Sucursal",
   nombre: "Nombre",
   mec1: "Clave Mecanica 1", mec2: "Clave Mecanica 2", mec3: "Clave Mecanica 3",
-  mec4: "Clave Mecanica 4", mec5: "Clave Mecanica 5", mec6: "Volumetrica 1",
-  vol: "Volumetrica 1",
+  mec4: "Clave Mecanica 4", mec5: "Clave CCTV", mec6: "Volumetrica 1",
+  vol: "Volumetrica 2",
   back1: "BACK1", back2: "BACK2",
   descripcion: "Descripción",
   guardia1: "Guardia 1", guardia2: "Guardia 2",
@@ -48,17 +49,6 @@ const COLUMNS = [
   { key: "nombre", label: "Nombre" },
   { key: "guardia1", label: "Guardia 1" },
   { key: "guardia2", label: "Guardia 2" },
-  // { key: "mec1", label: "MEC1" },
-  // { key: "mec2", label: "MEC2" },
-  // { key: "mec3", label: "MEC3" },
-  // { key: "mec4", label: "MEC4" },
-  // { key: "mec5", label: "MEC5" },
-  // { key: "mec6", label: "MEC6" },
-  // { key: "vol", label: "VOL" },
-  // { key: "back1", label: "BACK1" },
-  // { key: "back2", label: "BACK2" },
-  // { key: "descripcion", label: "Descripción" },
-  // { key: "fecha_actualizacion", label: "Fecha" },
 ];
 
 function formatDate(val) {
@@ -67,7 +57,9 @@ function formatDate(val) {
 }
 
 export default function KeysPage() {
-  const [openPin, setOpenPin] = useState(true);
+  const navigate = useNavigate();
+  const [hasPIN, setHasPIN] = useState(null); // null=cargando, true, false
+  const [pinValidated, setPinValidated] = useState(false);
   const [records, setRecords] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
@@ -78,14 +70,20 @@ export default function KeysPage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === "ADMIN";
 
+  useEffect(() => {
+    api.get("/auth/pin-status")
+      .then(({ data }) => setHasPIN(data.hasPIN))
+      .catch(() => setHasPIN(true));
+  }, []);
+
   async function fetchKeys() {
     const { data } = await api.get("/keys");
     setRecords(Array.isArray(data?.data) ? data.data : []);
   }
 
   useEffect(() => {
-    if (!openPin) fetchKeys();
-  }, [openPin]);
+    if (pinValidated) fetchKeys();
+  }, [pinValidated]);
 
   async function createKey() {
     await api.post("/keys", form);
@@ -111,8 +109,32 @@ export default function KeysPage() {
     setEditForm({ ...initialForm, ...record, fecha_actualizacion: record.fecha_actualizacion ? record.fecha_actualizacion.slice(0, 10) : "" });
   }
 
-  if (openPin) {
-    return <PinModal open={openPin} onSuccess={() => setOpenPin(false)} />;
+  if (hasPIN === null) return null;
+
+  if (!pinValidated && !hasPIN) {
+    return (
+      <Modal open={true} onClose={() => navigate(-1)} title="PIN requerido">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700">
+            No tenés un PIN configurado. Necesitás uno para acceder al módulo de claves.
+          </p>
+          <p className="text-xs text-slate-500">
+            Configurá tu PIN desde el menú de perfil o pedile al administrador que te lo asigne.
+          </p>
+          <Button className="w-full" onClick={() => navigate(-1)}>Volver</Button>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (!pinValidated) {
+    return (
+      <PinModal
+        open={true}
+        onSuccess={() => setPinValidated(true)}
+        onClose={() => navigate(-1)}
+      />
+    );
   }
 
   return (

@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { api } from "../../lib/axios";
+import { useAuthStore } from "../../store/auth.store";
 
-const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "" };
+const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "", cycle_start_date: "", initial_week_type: "A" };
 
 function GrupoSelect({ value, onChange, grupos }) {
   return (
@@ -32,6 +33,8 @@ function EditModal({ user, grupos, onClose, onSaved }) {
     role: user.role,
     is_active: user.is_active ? true : false,
     grupo_sas_id: user.grupo_sas_id ?? "",
+    cycle_start_date: user.cycle_start_date ? user.cycle_start_date.slice(0, 10) : "",
+    initial_week_type: user.initial_week_type ?? "A",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +47,8 @@ function EditModal({ user, grupos, onClose, onSaved }) {
       await api.put(`/users/${user.id}`, {
         ...form,
         grupo_sas_id: form.grupo_sas_id || null,
+        cycle_start_date: form.grupo_sas_id ? null : (form.cycle_start_date || null),
+        initial_week_type: form.grupo_sas_id ? null : (form.initial_week_type || "A"),
       });
       onSaved();
     } catch (err) {
@@ -76,6 +81,27 @@ function EditModal({ user, grupos, onClose, onSaved }) {
             onChange={(e) => setForm((p) => ({ ...p, grupo_sas_id: e.target.value }))}
             grupos={grupos}
           />
+          {!form.grupo_sas_id && (
+            <>
+              <Input
+                label="Fecha inicio ciclo"
+                type="date"
+                value={form.cycle_start_date}
+                onChange={(e) => setForm((p) => ({ ...p, cycle_start_date: e.target.value }))}
+              />
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Semana inicial</span>
+                <select
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none"
+                  value={form.initial_week_type}
+                  onChange={(e) => setForm((p) => ({ ...p, initial_week_type: e.target.value }))}
+                >
+                  <option value="A">Semana A</option>
+                  <option value="B">Semana B</option>
+                </select>
+              </label>
+            </>
+          )}
           <label className="flex items-center gap-3 pt-1">
             <input
               type="checkbox"
@@ -108,6 +134,26 @@ export default function UsersPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const currentUser = useAuthStore((s) => s.user);
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  async function toggleActive(u) {
+    try {
+      await api.put(`/users/${u.id}`, {
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        is_active: !u.is_active,
+        grupo_sas_id: u.grupo_sas_id || null,
+        cycle_start_date: u.cycle_start_date || null,
+        initial_week_type: u.initial_week_type || "A",
+      });
+      loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al actualizar usuario");
+    }
+  }
+
   async function loadData() {
     const [usersRes, gruposRes] = await Promise.all([
       api.get("/users/"),
@@ -127,6 +173,8 @@ export default function UsersPage() {
       await api.post("/auth/users", {
         ...form,
         grupo_sas_id: form.grupo_sas_id || null,
+        cycle_start_date: form.grupo_sas_id ? null : (form.cycle_start_date || null),
+        initial_week_type: form.grupo_sas_id ? null : (form.initial_week_type || "A"),
       });
       setMessage("Usuario creado correctamente.");
       setForm(EMPTY_FORM);
@@ -168,12 +216,26 @@ export default function UsersPage() {
                   </p>
                   <p className="text-xs text-slate-500">{u.email} · {u.role}</p>
                 </div>
-                <button
-                  onClick={() => setEditUser(u)}
-                  className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-                >
-                  Editar
-                </button>
+                <div className="flex items-center gap-2">
+                  {isAdmin && u.role === "USER" && (
+                    <button
+                      onClick={() => toggleActive(u)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        u.is_active
+                          ? "bg-red-50 text-red-600 hover:bg-red-100"
+                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {u.is_active ? "Bloquear" : "Activar"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setEditUser(u)}
+                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                  >
+                    Editar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -203,6 +265,27 @@ export default function UsersPage() {
             onChange={(e) => setForm((p) => ({ ...p, grupo_sas_id: e.target.value }))}
             grupos={grupos}
           />
+          {!form.grupo_sas_id && (
+            <>
+              <Input
+                label="Fecha inicio ciclo"
+                type="date"
+                value={form.cycle_start_date}
+                onChange={(e) => setForm((p) => ({ ...p, cycle_start_date: e.target.value }))}
+              />
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Semana inicial</span>
+                <select
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none"
+                  value={form.initial_week_type}
+                  onChange={(e) => setForm((p) => ({ ...p, initial_week_type: e.target.value }))}
+                >
+                  <option value="A">Semana A</option>
+                  <option value="B">Semana B</option>
+                </select>
+              </label>
+            </>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button className="w-full" type="submit">Crear usuario</Button>
           {message && <p className="text-sm text-emerald-700">{message}</p>}

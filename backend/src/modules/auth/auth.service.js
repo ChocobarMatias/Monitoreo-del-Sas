@@ -42,7 +42,7 @@ async function loginService({ email, password }) {
   };
 }
 
-async function registerUserByAdminService({ name, email, password, role, grupo_sas_id }) {
+async function registerUserByAdminService({ name, email, password, role, grupo_sas_id, cycle_start_date, initial_week_type }) {
   const existing = await query(
     `SELECT id FROM users WHERE email = ? LIMIT 1`,
     [email]
@@ -57,9 +57,9 @@ async function registerUserByAdminService({ name, email, password, role, grupo_s
   const passwordHash = await bcrypt.hash(password, 10);
 
   const result = await query(
-    `INSERT INTO users (name, email, password_hash, role, grupo_sas_id)
-     VALUES (?, ?, ?, ?, ?)`,
-    [name, email, passwordHash, role, grupo_sas_id || null]
+    `INSERT INTO users (name, email, password_hash, role, grupo_sas_id, cycle_start_date, initial_week_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [name, email, passwordHash, role, grupo_sas_id || null, cycle_start_date || null, initial_week_type || "A"]
   );
 
   return {
@@ -67,7 +67,9 @@ async function registerUserByAdminService({ name, email, password, role, grupo_s
     name,
     email,
     role,
-    grupo_sas_id: grupo_sas_id || null
+    grupo_sas_id: grupo_sas_id || null,
+    cycle_start_date: cycle_start_date || null,
+    initial_week_type: initial_week_type || "A"
   };
 }
 
@@ -181,11 +183,20 @@ async function resetPasswordService(token, newPassword) {
   return { ok: true };
 }
 
+async function pinStatusService(userId) {
+  const rows = await query(
+    `SELECT pin_hash IS NOT NULL AS hasPIN FROM users WHERE id = ? LIMIT 1`,
+    [userId]
+  );
+  return { hasPIN: rows[0]?.hasPIN === 1 };
+}
+
 module.exports = {
   loginService,
   registerUserByAdminService,
   setPinService,
   validatePinService,
   forgotPasswordService,
-  resetPasswordService
+  resetPasswordService,
+  pinStatusService
 };

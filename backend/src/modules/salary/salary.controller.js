@@ -3,11 +3,18 @@ const { calculateSalaryService, listConveniosService, createConvenioService } = 
 async function calculateSalaryController(req, res, next) {
   try {
     const { year, month, scaleId } = req.body;
+    const y = Number(year);
+    const m = Number(month);
+
+    if (!Number.isInteger(y) || !Number.isInteger(m) || y < 2000 || m < 1 || m > 12) {
+      return res.status(400).json({ ok: false, message: "year y month son requeridos y deben ser válidos" });
+    }
+
     const data = await calculateSalaryService({
       userId: req.user.id,
-      year: Number(year),
-      month: Number(month),
-      scaleId: Number(scaleId),
+      year: y,
+      month: m,
+      scaleId: scaleId ? Number(scaleId) : null,
     });
     res.json({ ok: true, data });
   } catch (error) {
