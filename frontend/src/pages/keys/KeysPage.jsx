@@ -33,7 +33,7 @@ const FIELD_LABELS = {
   numero_sucursal: "N° Sucursal",
   nombre: "Nombre",
   mec1: "Clave Mecanica 1", mec2: "Clave Mecanica 2", mec3: "Clave Mecanica 3",
-  mec4: "Clave Mecanica 4", mec5: "Clave Mecanica 5", mec6: "Clave Mecanica 6",
+  mec4: "Clave Mecanica 4", mec5: "Clave Mecanica 5", mec6: "Volumetrica 1",
   vol: "Volumetrica 1",
   back1: "BACK1", back2: "BACK2",
   descripcion: "Descripción",
