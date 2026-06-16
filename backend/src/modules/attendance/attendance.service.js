@@ -142,63 +142,6 @@ function buildMonthRows({ year, month, overrideMap, initialState, cycleStartDate
   return { rows, summary };
 }
 
-  // const daysInMonth = new Date(year, month, 0).getDate();
-  // const rows = [];
-  // const summary = getEmptySummary();
-
-  // for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
-  //   const jsDate = new Date(year, month - 1, dayNumber);
-  //   const dateKey = normalizeDate(jsDate);
-
-  //   const override = overrideMap.get(dateKey);
-
-  //   const baseShift = getBaseShiftForDate({
-  //     date: jsDate,
-  //     initialState
-  //   });
-
-  //   const finalShift = applySpecialRules({
-  //     baseShift,
-  //     override,
-  //     date: jsDate
-  //   });
-
-  //   const row = {
-  //     workDate: dateKey,
-  //     weekCycle: weekCycleFromDay(dayNumber),
-  //     dayName: dayNameFromDate(jsDate),
-
-  //     shiftType: finalShift.shiftType,
-  //     startTime: finalShift.startTime,
-  //     endTime: finalShift.endTime,
-  //     workedHours: Number(finalShift.workedHours || 0),
-  //     nightHours: Number(finalShift.nightHours || 0),
-  //     holidayPaidHours: Number(finalShift.holidayPaidHours || 0),
-
-  //     isHoliday: override?.type === "HOLIDAY" ? 1 : 0,
-  //     isStrike: override?.type === "STRIKE" ? 1 : 0,
-  //     isRest: override?.type === "REST" ? 1 : 0,
-  //     isVacation: override?.type === "VACATION" ? 1 : 0,
-  //     isSickLeave: override?.type === "SICK" ? 1 : 0,
-
-  //     source: override ? "MANUAL" : "AUTO"
-  //   };
-
-  //   summary.totalHours += row.workedHours;
-  //   summary.totalNightHours += row.nightHours;
-  //   summary.totalHolidayHours += row.holidayPaidHours;
-
-  //   rows.push(row);
-  // }
-
-  // summary.suggestedRestDays =
-  //   summary.totalHours > 204 ? Math.ceil((summary.totalHours - 204) / 12) : 0;
-
-  // return { rows, summary };
-
-
-
-
 
 
 
@@ -535,6 +478,7 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
     [shiftType, startTime, endTime, hours, hours > 0 ? nightHours : 0, monthRow.id, date]
   );
 
+  const totalDays = new Date(year, month, 0).getDate();
   const [result] = await query(
     `SELECT
        SUM(worked_hours) AS totalHours,
@@ -544,12 +488,12 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
        SUM(is_holiday) AS totalHolidays,
        SUM(is_rest) AS restDays,
        SUM(shift_type = 'DAY' AND DAYOFWEEK(work_date) IN (1, 7)) AS weekendDays,
-       COUNT(*) AS totalDays,
+       ? AS totalDays,
        SUM(is_holiday = 1 AND worked_hours > 0) AS holidaysWorked,
        SUM(is_vacation = 1 OR is_sick_leave = 1) AS justificationDays,
        GREATEST(0, SUM(worked_hours) - 200) AS overtimeHours
      FROM attendance_days WHERE attendance_month_id = ?`,
-    [monthRow.id]
+    [totalDays, monthRow.id]
   );
 
   const summary = {
@@ -567,6 +511,7 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
   };
 
   await updateMonthSummary(monthRow.id, summary);
+  await recalculateFutureMonths({ userId, year, month });
   return summary;
 }
 
