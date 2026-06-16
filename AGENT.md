@@ -1,6 +1,6 @@
 # AGENT.md — Monitoreo-del-Sas
 
-> Última actualización: 2026-06-16 02:00
+> Última actualización: 2026-06-16 06:35
 
 ## Estado general
 Sistema de gestión de personal (asistencia, claves, sueldos, auth). Backend Node.js + Express + MySQL. Frontend React + Vite. Branch activo: `dev`. Auditoría de seguridad y cobertura de DB completada. Plan de DB coverage ejecutado y completo.
@@ -63,6 +63,27 @@ Sistema de gestión de personal (asistencia, claves, sueldos, auth). Backend Nod
 
 ### Limpieza adicional — `f197344`
 - `frontend/src/app/router.jsx` — eliminado (dead code con paths de import incorrectos)
+
+---
+
+### UI/UX Fixes — session 2026-06-16
+
+#### Keys Module — PIN Modal
+- Botón cerrar en PinModal ahora navega `navigate(-1)` — `KeysPage.jsx`
+- Detección de PIN no configurado en mount: `GET /auth/pin-status` → modal informativo si `hasPIN === false`
+  - Backend: `pinStatusService` en `auth.service.js`, `pinStatusController` en `auth.controller.js`, ruta `GET /auth/pin-status` en `auth.routes.js`
+  - Frontend: `KeysPage.jsx` refactorizado con `hasPIN` state + `pinValidated` state
+
+#### Attendance Module — Configurar día modal
+- Nuevo paso "reset-normal" en `OverrideActionSheet.jsx`
+- Botón "Restablecer día normal" en el paso "select"
+- Presets: Nocturno (20:00→08:00, 12hs) y Diurno (08:00→20:00, 12hs)
+- `sendManual` acepta parámetros opcionales para los presets
+
+#### Users Module — Bloquear/Activar usuarios
+- Botón "Bloquear" / "Activar" en la lista de usuarios — `UsersPage.jsx`
+- Solo visible para admin viendo usuarios con rol USER
+- Llama `PUT /users/:id` con `is_active` invertido (backend ya lo soportaba)
 
 ---
 

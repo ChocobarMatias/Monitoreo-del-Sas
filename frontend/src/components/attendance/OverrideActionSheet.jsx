@@ -3,7 +3,7 @@ import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { api } from "../../lib/axios";
 
-// step: "select" → "holiday-question" → "manual"
+// step: "select" → "holiday-question" / "manual" / "reset-normal"
 const INITIAL = { selectedDate: "", step: "select", startTime: "08:00", endTime: "20:00", workedHours: 12 };
 
 export function OverrideActionSheet({ open, onClose, days, year, month, onSuccess, initialDate }) {
@@ -34,11 +34,16 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
     }
   }
 
-  async function sendManual() {
+  async function sendManual(overrideStart, overrideEnd, overrideHours) {
     if (!selectedDate) return;
     setLoading(true);
     try {
-      await api.patch("/attendance/day", { year, month, date: selectedDate, startTime, endTime, workedHours });
+      await api.patch("/attendance/day", {
+        year, month, date: selectedDate,
+        startTime: overrideStart ?? startTime,
+        endTime: overrideEnd ?? endTime,
+        workedHours: overrideHours ?? workedHours,
+      });
       onSuccess?.();
       handleClose();
     } finally {
@@ -68,6 +73,7 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
     "select": "Configurar día",
     "holiday-question": `Feriado · ${selectedDay?.day_name} ${dayNum}`,
     "manual": `Editar manual · ${selectedDay?.day_name} ${dayNum}`,
+    "reset-normal": `Restablecer turno · ${selectedDay?.day_name} ${dayNum}`,
   };
 
   return (
@@ -125,6 +131,13 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
                 className="w-full rounded-2xl border border-dashed border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-500"
               >
                 Editar manual
+              </button>
+              <button
+                disabled={loading}
+                onClick={() => set({ step: "reset-normal" })}
+                className="w-full rounded-2xl border border-dashed border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-600"
+              >
+                Restablecer día normal
               </button>
             </div>
           )}
@@ -204,6 +217,27 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
 
           <Button disabled={loading} onClick={sendManual}>
             Guardar cambios
+          </Button>
+          <button
+            className="text-xs text-slate-400 underline"
+            onClick={() => set({ step: "select" })}
+          >
+            Volver
+          </button>
+        </div>
+      )}
+
+      {/* ── PASO: restablecer turno normal ── */}
+      {step === "reset-normal" && (
+        <div className="grid gap-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Elegí el turno a restablecer
+          </p>
+          <Button disabled={loading} onClick={() => sendManual("20:00", "08:00", 12)}>
+            Nocturno · 20:00 a 08:00 · 12 hs
+          </Button>
+          <Button variant="secondary" disabled={loading} onClick={() => sendManual("08:00", "20:00", 12)}>
+            Diurno · 08:00 a 20:00 · 12 hs
           </Button>
           <button
             className="text-xs text-slate-400 underline"

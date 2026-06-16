@@ -1,4 +1,4 @@
-const { loginService, registerUserByAdminService, setPinService, validatePinService, forgotPasswordService, resetPasswordService } = require("./auth.service");
+const { loginService, registerUserByAdminService, setPinService, validatePinService, forgotPasswordService, resetPasswordService, pinStatusService } = require("./auth.service");
 
 async function loginController(req, res, next) {
   try {
@@ -67,4 +67,13 @@ async function resetPasswordController(req, res, next) {
   }
 }
 
-module.exports = { loginController, registerUserByAdminController, setPinController, validatePinController, forgotPasswordController, resetPasswordController };
+async function pinStatusController(req, res, next) {
+  try {
+    const result = await pinStatusService(req.user.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { loginController, registerUserByAdminController, setPinController, validatePinController, forgotPasswordController, resetPasswordController, pinStatusController };

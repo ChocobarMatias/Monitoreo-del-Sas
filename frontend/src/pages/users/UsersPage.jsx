@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { api } from "../../lib/axios";
+import { useAuthStore } from "../../store/auth.store";
 
 const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "", cycle_start_date: "", initial_week_type: "A" };
 
@@ -133,6 +134,26 @@ export default function UsersPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const currentUser = useAuthStore((s) => s.user);
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  async function toggleActive(u) {
+    try {
+      await api.put(`/users/${u.id}`, {
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        is_active: !u.is_active,
+        grupo_sas_id: u.grupo_sas_id || null,
+        cycle_start_date: u.cycle_start_date || null,
+        initial_week_type: u.initial_week_type || "A",
+      });
+      loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al actualizar usuario");
+    }
+  }
+
   async function loadData() {
     const [usersRes, gruposRes] = await Promise.all([
       api.get("/users/"),
@@ -195,12 +216,26 @@ export default function UsersPage() {
                   </p>
                   <p className="text-xs text-slate-500">{u.email} · {u.role}</p>
                 </div>
-                <button
-                  onClick={() => setEditUser(u)}
-                  className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-                >
-                  Editar
-                </button>
+                <div className="flex items-center gap-2">
+                  {isAdmin && u.role === "USER" && (
+                    <button
+                      onClick={() => toggleActive(u)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        u.is_active
+                          ? "bg-red-50 text-red-600 hover:bg-red-100"
+                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {u.is_active ? "Bloquear" : "Activar"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setEditUser(u)}
+                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                  >
+                    Editar
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

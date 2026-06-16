@@ -5,7 +5,8 @@ const {
   registerUserByAdminController,
   setPinController,
   validatePinController,
-  resetPasswordController
+  resetPasswordController,
+  pinStatusController
 } = require("./auth.controller");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
 const { roleMiddleware } = require("../../middlewares/roleMiddleware");
@@ -26,5 +27,6 @@ router.post(
 
 router.post("/set-pin", authMiddleware, setPinController);
 router.post("/validate-pin", authMiddleware, validatePinController);
+router.get("/pin-status", authMiddleware, pinStatusController);
 
 module.exports = router;

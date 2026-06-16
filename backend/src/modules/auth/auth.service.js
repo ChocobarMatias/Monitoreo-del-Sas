@@ -183,11 +183,20 @@ async function resetPasswordService(token, newPassword) {
   return { ok: true };
 }
 
+async function pinStatusService(userId) {
+  const rows = await query(
+    `SELECT pin_hash IS NOT NULL AS hasPIN FROM users WHERE id = ? LIMIT 1`,
+    [userId]
+  );
+  return { hasPIN: rows[0]?.hasPIN === 1 };
+}
+
 module.exports = {
   loginService,
   registerUserByAdminService,
   setPinService,
   validatePinService,
   forgotPasswordService,
-  resetPasswordService
+  resetPasswordService,
+  pinStatusService
 };
