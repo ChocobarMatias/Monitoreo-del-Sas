@@ -16,8 +16,8 @@ async function loginController(req, res, next) {
 
 async function registerUserByAdminController(req, res, next) {
   try {
-    const { name, email, password, role, grupo_sas_id } = req.body;
-    const result = await registerUserByAdminService({ name, email, password, role, grupo_sas_id });
+    const { name, email, password, role, grupo_sas_id, cycle_start_date, initial_week_type } = req.body;
+    const result = await registerUserByAdminService({ name, email, password, role, grupo_sas_id, cycle_start_date, initial_week_type });
     res.status(201).json(result);
   } catch (err) {
     next(err);
