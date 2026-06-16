@@ -3,7 +3,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { api } from "../../lib/axios";
 
-const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "" };
+const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "", cycle_start_date: "", initial_week_type: "A" };
 
 function GrupoSelect({ value, onChange, grupos }) {
   return (
@@ -32,6 +32,8 @@ function EditModal({ user, grupos, onClose, onSaved }) {
     role: user.role,
     is_active: user.is_active ? true : false,
     grupo_sas_id: user.grupo_sas_id ?? "",
+    cycle_start_date: user.cycle_start_date ? user.cycle_start_date.slice(0, 10) : "",
+    initial_week_type: user.initial_week_type ?? "A",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +46,8 @@ function EditModal({ user, grupos, onClose, onSaved }) {
       await api.put(`/users/${user.id}`, {
         ...form,
         grupo_sas_id: form.grupo_sas_id || null,
+        cycle_start_date: form.grupo_sas_id ? null : (form.cycle_start_date || null),
+        initial_week_type: form.grupo_sas_id ? null : (form.initial_week_type || "A"),
       });
       onSaved();
     } catch (err) {
@@ -76,6 +80,27 @@ function EditModal({ user, grupos, onClose, onSaved }) {
             onChange={(e) => setForm((p) => ({ ...p, grupo_sas_id: e.target.value }))}
             grupos={grupos}
           />
+          {!form.grupo_sas_id && (
+            <>
+              <Input
+                label="Fecha inicio ciclo"
+                type="date"
+                value={form.cycle_start_date}
+                onChange={(e) => setForm((p) => ({ ...p, cycle_start_date: e.target.value }))}
+              />
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Semana inicial</span>
+                <select
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none"
+                  value={form.initial_week_type}
+                  onChange={(e) => setForm((p) => ({ ...p, initial_week_type: e.target.value }))}
+                >
+                  <option value="A">Semana A</option>
+                  <option value="B">Semana B</option>
+                </select>
+              </label>
+            </>
+          )}
           <label className="flex items-center gap-3 pt-1">
             <input
               type="checkbox"
@@ -127,6 +152,8 @@ export default function UsersPage() {
       await api.post("/auth/users", {
         ...form,
         grupo_sas_id: form.grupo_sas_id || null,
+        cycle_start_date: form.grupo_sas_id ? null : (form.cycle_start_date || null),
+        initial_week_type: form.grupo_sas_id ? null : (form.initial_week_type || "A"),
       });
       setMessage("Usuario creado correctamente.");
       setForm(EMPTY_FORM);
@@ -203,6 +230,27 @@ export default function UsersPage() {
             onChange={(e) => setForm((p) => ({ ...p, grupo_sas_id: e.target.value }))}
             grupos={grupos}
           />
+          {!form.grupo_sas_id && (
+            <>
+              <Input
+                label="Fecha inicio ciclo"
+                type="date"
+                value={form.cycle_start_date}
+                onChange={(e) => setForm((p) => ({ ...p, cycle_start_date: e.target.value }))}
+              />
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Semana inicial</span>
+                <select
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 outline-none"
+                  value={form.initial_week_type}
+                  onChange={(e) => setForm((p) => ({ ...p, initial_week_type: e.target.value }))}
+                >
+                  <option value="A">Semana A</option>
+                  <option value="B">Semana B</option>
+                </select>
+              </label>
+            </>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button className="w-full" type="submit">Crear usuario</Button>
           {message && <p className="text-sm text-emerald-700">{message}</p>}
