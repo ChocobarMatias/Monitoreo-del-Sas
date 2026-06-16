@@ -7,7 +7,7 @@ async function calculateSalaryController(req, res, next) {
       userId: req.user.id,
       year: Number(year),
       month: Number(month),
-      scaleId: Number(scaleId),
+      scaleId: scaleId ? Number(scaleId) : null,
     });
     res.json({ ok: true, data });
   } catch (error) {
