@@ -1,6 +1,6 @@
 # AGENT.md — Monitoreo-del-Sas
 
-> Última actualización: 2026-06-16 01:35
+> Última actualización: 2026-06-16 02:00
 
 ## Estado general
 Sistema de gestión de personal (asistencia, claves, sueldos, auth). Backend Node.js + Express + MySQL. Frontend React + Vite. Branch activo: `dev`. Auditoría de seguridad y cobertura de DB completada. Plan de DB coverage ejecutado y completo.
@@ -52,8 +52,22 @@ Sistema de gestión de personal (asistencia, claves, sueldos, auth). Backend Nod
 
 ---
 
+### Auth Controller — `db21b93`
+- `auth.controller.js` — eliminadas 180 líneas de servicios duplicados inline; ahora importa correctamente desde `auth.service.js`
+- Bug crítico resuelto: los controllers usaban copias locales de los servicios, ignorando cambios en `auth.service.js`
+
+### Users — `f197344`, `c1eb027`, `db21b93`
+- `UsersPage.jsx` — campos `cycle_start_date` e `initial_week_type` en create y edit, visibles solo cuando no hay grupo SAS
+- `auth.service.js` `registerUserByAdminService` — acepta e inserta `cycle_start_date` e `initial_week_type`
+- `auth.controller.js` — pasa ambos campos al service
+
+### Limpieza adicional — `f197344`
+- `frontend/src/app/router.jsx` — eliminado (dead code con paths de import incorrectos)
+
+---
+
 ## Pendiente ❌
-No hay tasks pendientes del plan actual.
+No hay tasks pendientes.
 
 ---
 
