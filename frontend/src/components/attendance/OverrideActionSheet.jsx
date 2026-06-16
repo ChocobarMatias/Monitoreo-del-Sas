@@ -34,6 +34,18 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
     }
   }
 
+  async function sendClearDay() {
+    if (!selectedDate) return;
+    setLoading(true);
+    try {
+      await api.patch("/attendance/day", { year, month, date: selectedDate, resetToNone: true });
+      onSuccess?.();
+      handleClose();
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function sendManual(overrideStart, overrideEnd, overrideHours) {
     if (!selectedDate) return;
     setLoading(true);
@@ -239,6 +251,13 @@ export function OverrideActionSheet({ open, onClose, days, year, month, onSucces
           <Button variant="secondary" disabled={loading} onClick={() => sendManual("08:00", "20:00", 12)}>
             Diurno · 08:00 a 20:00 · 12 hs
           </Button>
+          <button
+            disabled={loading}
+            onClick={sendClearDay}
+            className="w-full rounded-2xl border border-dashed border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-500"
+          >
+            Día no laboral
+          </button>
           <button
             className="text-xs text-slate-400 underline"
             onClick={() => set({ step: "select" })}

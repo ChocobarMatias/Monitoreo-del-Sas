@@ -466,6 +466,11 @@ async function applyOverrideAndRecalculateService({ userId, year, month, date, t
 async function manualUpdateDayService({ userId, year, month, date, startTime, endTime, workedHours }) {
   const monthRow = await getOrCreateAttendanceMonth({ userId, year, month });
 
+  await query(
+    `DELETE FROM attendance_overrides WHERE attendance_month_id = ? AND work_date = ?`,
+    [monthRow.id, date]
+  );
+
   const shiftType = startTime === "20:00" ? "NIGHT" : "DAY";
   const nightHours = shiftType === "NIGHT" ? 9 : 0;
   const hours = Number(workedHours) || 0;
@@ -473,9 +478,66 @@ async function manualUpdateDayService({ userId, year, month, date, startTime, en
   await query(
     `UPDATE attendance_days
      SET shift_type = ?, start_time = ?, end_time = ?,
-         worked_hours = ?, night_hours = ?, source = 'MANUAL'
+         worked_hours = ?, night_hours = ?, holiday_paid_hours = 0,
+         is_rest = 0, is_vacation = 0, is_sick_leave = 0, is_strike = 0, is_holiday = 0,
+         source = 'MANUAL'
      WHERE attendance_month_id = ? AND work_date = ?`,
     [shiftType, startTime, endTime, hours, hours > 0 ? nightHours : 0, monthRow.id, date]
+  );
+
+  const totalDays = new Date(year, month, 0).getDate();
+  const [result] = await query(
+    `SELECT
+       SUM(worked_hours) AS totalHours,
+       SUM(night_hours) AS totalNightHours,
+       SUM(holiday_paid_hours) AS totalHolidayHours,
+       SUM(worked_hours > 0) AS workedDays,
+       SUM(is_holiday) AS totalHolidays,
+       SUM(is_rest) AS restDays,
+       SUM(shift_type = 'DAY' AND DAYOFWEEK(work_date) IN (1, 7)) AS weekendDays,
+       ? AS totalDays,
+       SUM(is_holiday = 1 AND worked_hours > 0) AS holidaysWorked,
+       SUM(is_vacation = 1 OR is_sick_leave = 1) AS justificationDays,
+       GREATEST(0, SUM(worked_hours) - 200) AS overtimeHours
+     FROM attendance_days WHERE attendance_month_id = ?`,
+    [totalDays, monthRow.id]
+  );
+
+  const summary = {
+    totalHours: Number(result.totalHours || 0),
+    totalNightHours: Number(result.totalNightHours || 0),
+    totalHolidayHours: Number(result.totalHolidayHours || 0),
+    workedDays: Number(result.workedDays || 0),
+    restDays: Number(result.restDays || 0),
+    totalHolidays: Number(result.totalHolidays || 0),
+    weekendDays: Number(result.weekendDays || 0),
+    totalDays: Number(result.totalDays || 0),
+    holidaysWorked: Number(result.holidaysWorked || 0),
+    justificationDays: Number(result.justificationDays || 0),
+    overtimeHours: Number(result.overtimeHours || 0),
+  };
+
+  await updateMonthSummary(monthRow.id, summary);
+  await recalculateFutureMonths({ userId, year, month });
+  return summary;
+}
+
+async function clearDayToNoneService({ userId, year, month, date }) {
+  const monthRow = await getOrCreateAttendanceMonth({ userId, year, month });
+
+  await query(
+    `DELETE FROM attendance_overrides WHERE attendance_month_id = ? AND work_date = ?`,
+    [monthRow.id, date]
+  );
+
+  await query(
+    `UPDATE attendance_days
+     SET shift_type = 'NONE', start_time = NULL, end_time = NULL,
+         worked_hours = 0, night_hours = 0, holiday_paid_hours = 0,
+         is_rest = 0, is_vacation = 0, is_sick_leave = 0, is_strike = 0, is_holiday = 0,
+         source = 'MANUAL'
+     WHERE attendance_month_id = ? AND work_date = ?`,
+    [monthRow.id, date]
   );
 
   const totalDays = new Date(year, month, 0).getDate();
@@ -519,5 +581,6 @@ module.exports = {
   generateAttendanceMonthService,
   getAttendanceMonthService,
   applyOverrideAndRecalculateService,
-  manualUpdateDayService
+  manualUpdateDayService,
+  clearDayToNoneService
 };

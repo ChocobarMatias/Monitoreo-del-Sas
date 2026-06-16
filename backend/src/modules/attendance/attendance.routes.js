@@ -4,7 +4,8 @@ const {
   generateAttendanceMonthService,
   getAttendanceMonthService,
   applyOverrideAndRecalculateService,
-  manualUpdateDayService
+  manualUpdateDayService,
+  clearDayToNoneService
 } = require("./attendance.service");
 const { generateAttendancePDF } = require("./attendance.pdf");
 
@@ -60,16 +61,26 @@ router.post("/override", async (req, res, next) => {
 
 router.patch("/day", async (req, res, next) => {
   try {
-    const { year, month, date, startTime, endTime, workedHours } = req.body;
-    const data = await manualUpdateDayService({
-      userId: req.user.id,
-      year: Number(year),
-      month: Number(month),
-      date,
-      startTime,
-      endTime,
-      workedHours
-    });
+    const { year, month, date, startTime, endTime, workedHours, resetToNone } = req.body;
+    let data;
+    if (resetToNone) {
+      data = await clearDayToNoneService({
+        userId: req.user.id,
+        year: Number(year),
+        month: Number(month),
+        date
+      });
+    } else {
+      data = await manualUpdateDayService({
+        userId: req.user.id,
+        year: Number(year),
+        month: Number(month),
+        date,
+        startTime,
+        endTime,
+        workedHours
+      });
+    }
     res.json({ ok: true, data });
   } catch (error) {
     next(error);
