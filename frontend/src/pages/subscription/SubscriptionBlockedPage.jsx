@@ -54,11 +54,14 @@ export default function SubscriptionBlockedPage() {
           <div className="rounded-3xl bg-white p-6 shadow-soft space-y-3">
             <p className="text-sm font-semibold text-slate-800">¿Qué podés hacer?</p>
             <ul className="space-y-2 text-sm text-slate-600">
-              <li className="flex gap-2"><span>📋</span> Planillas de horas y asistencia</li>
-              <li className="flex gap-2"><span>💰</span> Cálculo automático de sueldos</li>
-              <li className="flex gap-2"><span>🔑</span> Gestión de claves de acceso a sucursales</li>
+              <li className="flex gap-2"><span>📋</span> Carga rápida de planillas de horas y asistencia</li>
+              <li className="flex gap-2"><span>📋</span> Descarga ilimitada de reportes en PDF</li>
+              <li className="flex gap-2"><span>📋</span> Acceso 24/7 desde cualquier celular</li>
+              <li className="flex gap-2"><span>💰</span> Cálculo automático de sueldos en blanco y negro</li>
+              <li className="flex gap-2"><span>🔑</span> Gestión centralizada de claves de acceso a sucursales</li>
               <li className="flex gap-2"><span>🔔</span> Notificaciones <span className="text-slate-400">(próximamente)</span></li>
-            </ul>
+            </ul><br />
+Tu membresía garantiza que el servicio se mantenga activo, seguro y disponible para todo el equipo las 24 horas.
           </div>
         )}
 
