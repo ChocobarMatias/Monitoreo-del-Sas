@@ -3,6 +3,7 @@ import App from "./App";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { PublicOnlyRoute } from "./components/common/PublicOnlyRoute";
 import { RoleGuard } from "./components/common/RoleGuard";
+import { SubscriptionGate } from "./components/common/SubscriptionGate";
 import { MobileLayout } from "./components/layout/MobileLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -32,20 +33,25 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           {
-            element: <MobileLayout />,
+            element: <SubscriptionGate />,
             children: [
-              { index: true, element: <DashboardPage /> },
-              { path: "/attendance", element: <AttendancePage /> },
-              { path: "/keys", element: <KeysPage /> },
-              { path: "/salary", element: <SalaryPage /> },
-              { path: "/profile", element: <ProfilePage /> },
               {
-                path: "/users",
-                element: (
-                  <RoleGuard roles={["ADMIN"]}>
-                    <UsersPage />
-                  </RoleGuard>
-                )
+                element: <MobileLayout />,
+                children: [
+                  { index: true, element: <DashboardPage /> },
+                  { path: "/attendance", element: <AttendancePage /> },
+                  { path: "/keys", element: <KeysPage /> },
+                  { path: "/salary", element: <SalaryPage /> },
+                  { path: "/profile", element: <ProfilePage /> },
+                  {
+                    path: "/users",
+                    element: (
+                      <RoleGuard roles={["ADMIN"]}>
+                        <UsersPage />
+                      </RoleGuard>
+                    )
+                  }
+                ]
               }
             ]
           }
