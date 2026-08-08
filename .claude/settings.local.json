@@ -10,7 +10,15 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git rm *)",
-      "Bash(findstr /i \".env\")"
+      "Bash(findstr /i \".env\")",
+      "PowerShell(Get-Command *)",
+      "PowerShell(New-Item *)",
+      "Bash(node -e \"const b=require\\('./backend/package.json'\\); console.log\\(JSON.stringify\\(b.scripts,null,2\\)\\)\")",
+      "Bash(node -e \"const f=require\\('./frontend/package.json'\\); console.log\\(JSON.stringify\\(f.scripts,null,2\\)\\)\")",
+      "Bash(npx jest *)",
+      "Bash(ls __tests__)",
+      "Bash(ls tests *)",
+      "Bash(ls *.test.js)"
     ]
   }
 }

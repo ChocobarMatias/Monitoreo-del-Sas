@@ -4,9 +4,21 @@ async function listUsersService() {
   return query(
     `SELECT u.id, u.name, u.email, u.role, u.is_active,
             u.cycle_start_date, u.initial_week_type, u.grupo_sas_id,
-            g.nombre AS grupo_nombre, g.tipo_inicio AS grupo_tipo_inicio
+            g.nombre AS grupo_nombre, g.tipo_inicio AS grupo_tipo_inicio,
+            s.expires_at AS sub_expires_at,
+            CASE
+              WHEN s.expires_at IS NULL       THEN 'never'
+              WHEN s.expires_at < CURDATE()   THEN 'expired'
+              ELSE 'active'
+            END AS sub_status,
+            GREATEST(0, DATEDIFF(s.expires_at, CURDATE())) AS sub_remaining_days
      FROM users u
      LEFT JOIN grupos_sas g ON g.id = u.grupo_sas_id
+     LEFT JOIN (
+       SELECT user_id, MAX(expires_at) AS expires_at
+       FROM subscriptions
+       GROUP BY user_id
+     ) s ON s.user_id = u.id
      ORDER BY u.name ASC`
   );
 }
