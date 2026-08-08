@@ -17,7 +17,6 @@ export function PinModal({ open, onClose, onSuccess }) {
       setPin("");
       setError("");
       onSuccess?.();
-      onClose?.();
     } catch (err) {
       setError(err.response?.data?.message || "PIN inválido");
     }
