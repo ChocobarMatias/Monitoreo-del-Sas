@@ -11,8 +11,12 @@ async function listKeysService() {
   return rows;
 }
 
+function toDb(v) {
+  return v === "" || v === undefined ? null : v;
+}
+
 async function createKeyService(data) {
-  const values = KEY_FIELDS.map(f => data[f] ?? null);
+  const values = KEY_FIELDS.map(f => toDb(data[f]));
   const result = await query(
     `INSERT INTO key_records (${KEY_FIELDS.join(",")}) VALUES (${KEY_FIELDS.map(_ => "?").join(",")})`,
     values
@@ -23,7 +27,7 @@ async function createKeyService(data) {
 async function updateKeyService(id, data) {
   const fields = KEY_FIELDS.filter(f => f in data);
   if (fields.length === 0) return { updated: 0 };
-  const values = [...fields.map(f => data[f] ?? null), id];
+  const values = [...fields.map(f => toDb(data[f])), id];
   const result = await query(
     `UPDATE key_records SET ${fields.map(f => `${f}=?`).join(",")} WHERE id=?`,
     values
