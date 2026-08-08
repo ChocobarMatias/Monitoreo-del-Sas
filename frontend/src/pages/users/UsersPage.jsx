@@ -1,10 +1,29 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { Modal } from "../../components/ui/Modal";
 import { api } from "../../lib/axios";
 import { useAuthStore } from "../../store/auth.store";
 
 const EMPTY_FORM = { name: "", email: "", password: "", role: "USER", grupo_sas_id: "", cycle_start_date: "", initial_week_type: "A" };
+
+function SubBadge({ status, remainingDays }) {
+  if (status === "active") return (
+    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+      Activo · {remainingDays}d
+    </span>
+  );
+  if (status === "expired") return (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+      Vencido
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+      Sin membresía
+    </span>
+  );
+}
 
 function GrupoSelect({ value, onChange, grupos }) {
   return (
@@ -133,6 +152,13 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [activateTarget, setActivateTarget] = useState(null);
+  const [activateForm, setActivateForm] = useState({
+    activated_at: new Date().toISOString().slice(0, 10),
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    notes: "",
+  });
+  const [activating, setActivating] = useState(false);
 
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === "ADMIN";
@@ -164,6 +190,25 @@ export default function UsersPage() {
   }
 
   useEffect(() => { loadData(); }, []);
+
+  async function handleActivate() {
+    if (!activateTarget) return;
+    setActivating(true);
+    try {
+      await api.post(`/subscriptions/activate/${activateTarget.id}`, activateForm);
+      setActivateTarget(null);
+      setActivateForm({
+        activated_at: new Date().toISOString().slice(0, 10),
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        notes: "",
+      });
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Error al activar");
+    } finally {
+      setActivating(false);
+    }
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -215,6 +260,15 @@ export default function UsersPage() {
                     {grupoBadge(u)}
                   </p>
                   <p className="text-xs text-slate-500">{u.email} · {u.role}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <SubBadge status={u.sub_status} remainingDays={u.sub_remaining_days} />
+                    <button
+                      onClick={() => setActivateTarget({ id: u.id, name: u.name })}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Activar
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isAdmin && u.role === "USER" && (
@@ -301,6 +355,37 @@ export default function UsersPage() {
           onSaved={() => { setEditUser(null); loadData(); }}
         />
       )}
+
+      {/* Modal de activación de membresía */}
+      <Modal
+        open={!!activateTarget}
+        onClose={() => setActivateTarget(null)}
+        title={`Activar membresía — ${activateTarget?.name ?? ""}`}
+      >
+        <div className="space-y-3">
+          <Input
+            label="Fecha inicio"
+            type="date"
+            value={activateForm.activated_at}
+            onChange={(e) => setActivateForm((p) => ({ ...p, activated_at: e.target.value }))}
+          />
+          <Input
+            label="Fecha fin"
+            type="date"
+            value={activateForm.expires_at}
+            onChange={(e) => setActivateForm((p) => ({ ...p, expires_at: e.target.value }))}
+          />
+          <Input
+            label="Notas (opcional)"
+            value={activateForm.notes}
+            placeholder="ej: acceso gratuito, período de prueba"
+            onChange={(e) => setActivateForm((p) => ({ ...p, notes: e.target.value }))}
+          />
+          <Button className="w-full" onClick={handleActivate} disabled={activating}>
+            {activating ? "Activando..." : "Confirmar activación"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
