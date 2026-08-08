@@ -23,7 +23,9 @@ const env = {
   MAIL_PASS: process.env.MAIL_PASS,
   MAIL_FROM: process.env.MAIL_FROM,
 
-  FRONTEND_URL: process.env.FRONTEND_URL
+  FRONTEND_URL: process.env.FRONTEND_URL,
+
+  PAYMENT_ALIAS: process.env.PAYMENT_ALIAS
 };
 
 module.exports = { env };
