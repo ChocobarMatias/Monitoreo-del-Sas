@@ -12,7 +12,7 @@ export function SubscriptionGate() {
     if (user?.role !== "ADMIN") {
       fetchStatus();
     }
-  }, [user]);
+  }, [user, fetchStatus]);
 
   if (user?.role === "ADMIN") return <Outlet />;
   if (status === null) return (

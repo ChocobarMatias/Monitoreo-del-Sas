@@ -14,7 +14,8 @@ export const useSubscriptionStore = create((set) => ({
         expiresAt: data.expires_at,
         remainingDays: data.remaining_days,
       });
-    } catch {
+    } catch (err) {
+      if (err?.response?.status === 401) return;
       set({ status: "never", expiresAt: null, remainingDays: 0 });
     }
   },
