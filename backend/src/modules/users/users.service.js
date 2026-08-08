@@ -4,7 +4,7 @@ async function listUsersService() {
   return query(
     `SELECT u.id, u.name, u.email, u.role, u.is_active,
             u.cycle_start_date, u.initial_week_type, u.grupo_sas_id,
-            g.nome AS grupo_nombre, g.tipo_inicio AS grupo_tipo_inicio,
+            g.nombre AS grupo_nombre, g.tipo_inicio AS grupo_tipo_inicio,
             s.expires_at AS sub_expires_at,
             CASE
               WHEN s.expires_at IS NULL       THEN 'never'
