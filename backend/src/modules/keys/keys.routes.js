@@ -5,7 +5,7 @@ const { roleMiddleware } = require("../../middlewares/roleMiddleware");
 const router = Router();
 
 router.get("/", authMiddleware, listKeysController);
-router.post("/", authMiddleware, createKeyController);
+router.post("/", authMiddleware, roleMiddleware("ADMIN"), createKeyController);
 router.put("/:id", authMiddleware, roleMiddleware("ADMIN"), updateKeyController);
 router.delete("/:id", authMiddleware, roleMiddleware("ADMIN"), deleteKeyController);
 

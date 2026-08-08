@@ -6,7 +6,7 @@ import { Input } from "../../components/ui/Input";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [resetLink, setResetLink] = useState("");
+  const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,12 +15,8 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await api.post("/auth/forgot-password", { email });
-      if (res.data?.token) {
-        setResetLink(`/reset-password?token=${res.data.token}`);
-      } else {
-        setResetLink("enviado");
-      }
+      await api.post("/auth/forgot-password", { email });
+      setEnviado(true);
     } catch {
       setError("Ocurrió un error. Intentá de nuevo.");
     } finally {
@@ -28,25 +24,7 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  if (resetLink && resetLink !== "enviado") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-        <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-soft">
-          <h1 className="text-2xl font-black text-slate-950">Link generado</h1>
-          <p className="mt-2 text-sm text-slate-500">Usá este link para resetear la contraseña:</p>
-          <Link
-            to={resetLink}
-            className="mt-4 inline-block break-all text-sm font-semibold text-blue-600 underline"
-          >
-            Hacer click aquí para resetear tu contraseña
-          </Link>
-          <p className="mt-4 text-xs text-slate-400">Este link expira en 30 minutos.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (resetLink === "enviado") {
+  if (enviado) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
         <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-soft">

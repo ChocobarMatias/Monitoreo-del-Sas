@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "../../store/auth.store";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -14,6 +15,7 @@ export default function LoginPage() {
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -43,14 +45,31 @@ export default function LoginPage() {
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             placeholder="admin@local.com"
           />
-          <Input
-            label="Contraseña"
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-            placeholder="••••••••"
-            error={error}
-          />
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">Contraseña</span>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="••••••••"
+                className={`h-12 w-full rounded-2xl border bg-white px-4 pr-12 outline-none transition ${
+                  error
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-slate-200 focus:border-slate-400"
+                }`}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {error ? <span className="text-xs text-red-600">{error}</span> : null}
+          </label>
           <Button className="w-full" disabled={isLoggingIn} type="submit">
             {isLoggingIn ? "Ingresando..." : "Entrar"}
           </Button>

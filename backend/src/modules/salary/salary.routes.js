@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const { authMiddleware } = require("../../middlewares/authMiddleware");
+const { roleMiddleware } = require("../../middlewares/roleMiddleware");
 const {
   calculateSalaryController,
   listConveniosController,
@@ -12,6 +13,6 @@ router.get("/", (_req, res) => res.json({ ok: true, message: "Salary module acti
 
 router.post("/calculate", authMiddleware, calculateSalaryController);
 router.get("/convenios", authMiddleware, listConveniosController);
-router.post("/convenios", authMiddleware, createConvenioController);
+router.post("/convenios", authMiddleware, roleMiddleware("ADMIN"), createConvenioController);
 
 module.exports = router;

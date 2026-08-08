@@ -137,7 +137,7 @@ async function forgotPasswordService(email) {
     [user.id, tokenHash, expiresAt]
   );
 
-  return { ok: true, token: rawToken };
+  return { ok: true };
 }
 
 async function resetPasswordService(token, newPassword) {
