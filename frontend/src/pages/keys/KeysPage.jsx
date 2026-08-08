@@ -141,7 +141,7 @@ export default function KeysPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-800">Registro de Claves</h2>
-        <Button onClick={() => setFormOpen(true)}>Agregar registro</Button>
+        {isAdmin && <Button onClick={() => setFormOpen(true)}>Agregar registro</Button>}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
