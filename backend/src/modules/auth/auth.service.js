@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { pool, query } = require("../../config/db");
 const { signAccessToken, signRefreshToken } = require("../../utils/jwt");
+const { sendPasswordResetEmail } = require("../../config/mailer");
 
 async function loginService({ email, password }) {
   const rows = await query(
@@ -136,6 +137,8 @@ async function forgotPasswordService(email) {
      VALUES (?, ?, ?)`,
     [user.id, tokenHash, expiresAt]
   );
+
+  await sendPasswordResetEmail(user.email, rawToken);
 
   return { ok: true };
 }
