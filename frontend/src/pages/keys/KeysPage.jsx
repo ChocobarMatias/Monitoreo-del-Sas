@@ -106,7 +106,12 @@ export default function KeysPage() {
 
   function openEdit(record) {
     setEditRecord(record);
-    setEditForm({ ...initialForm, ...record, fecha_actualizacion: record.fecha_actualizacion ? record.fecha_actualizacion.slice(0, 10) : "" });
+    const sanitized = {};
+    FORM_FIELDS.forEach(k => { sanitized[k] = record[k] ?? ""; });
+    sanitized.fecha_actualizacion = record.fecha_actualizacion
+      ? record.fecha_actualizacion.slice(0, 10)
+      : "";
+    setEditForm(sanitized);
   }
 
   if (hasPIN === null) return null;
