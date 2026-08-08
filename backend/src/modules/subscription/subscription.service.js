@@ -26,7 +26,7 @@ async function getHistoryService(userId) {
     `SELECT s.id, s.activated_at, s.expires_at, s.notes, s.created_at,
             u.name AS activated_by_name
      FROM subscriptions s
-     JOIN users u ON u.id = s.activated_by
+     LEFT JOIN users u ON u.id = s.activated_by
      WHERE s.user_id = ?
      ORDER BY s.created_at DESC`,
     [userId]
@@ -34,6 +34,9 @@ async function getHistoryService(userId) {
 }
 
 async function activateSubscriptionService(userId, adminId, { activated_at, expires_at, notes }) {
+  if (!activated_at || !expires_at) {
+    throw Object.assign(new Error("activated_at y expires_at son requeridos"), { status: 400 });
+  }
   await query(
     `INSERT INTO subscriptions (user_id, activated_at, expires_at, activated_by, notes)
      VALUES (?, ?, ?, ?, ?)`,
